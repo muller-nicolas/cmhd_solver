@@ -56,4 +56,42 @@ bb=bb/real(N*N)
 RETURN
 END SUBROUTINE derivey
 
+!*****************************************************************
+SUBROUTINE spectrum(ux,uy,Ek,Nh,N)
+!***********compute the 2D spectrum
+double precision ux(N,N), uy(N,N), Ek(Nh,N)
+double complex :: ukx(Nh,N), uky(Nh,N), Ek1(Nh,N)
+integer Nh, N, iia, iib
+
+call dfftw_execute_dft_r2c(plan_for,ux,ukx)
+call dfftw_execute_dft_r2c(plan_for,uy,uky)
+
+Ek1 = abs(ukx)**2 + abs(uky)**2
+do iia = 1, Nh
+do iib = 1, N
+Ek(iia,iib) = real(Ek1(iia,iib))
+end do
+end do
+
+RETURN
+END SUBROUTINE spectrum
+
+!*****************************************************************
+SUBROUTINE spectrumrho(rho,Ek,Nh,N)
+!***********compute the 2D spectrum
+double precision rho(N,N), Ek(Nh,N)
+double complex :: rhok(Nh,N), Ek1(Nh,N)
+integer Nh, N, iia, iib
+
+call dfftw_execute_dft_r2c(plan_for,rho,rhok)
+Ek1 = abs(rhok)**2
+do iia = 1, Nh
+do iib = 1, N
+Ek(iia,iib) = real(Ek1(iia,iib))
+end do
+end do
+
+RETURN
+END SUBROUTINE spectrumrho
+
 END MODULE spectral_mod

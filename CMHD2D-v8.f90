@@ -3,7 +3,6 @@
 !  Sébastien Galtier - LPP - Version 8 (July 2025)
 !*********************************************************************
 
-! TODO: Declare global plans for forward and backward fft
 ! TODO: Dealisaing?
 ! TODO: RK4
 ! TODO: Parallelisation: MPI, openMP or GPU
@@ -300,7 +299,7 @@ end if
 if ( (mod(it,ispec) .eq. 0) ) then
 print *, it
 write(animE(19:21),'(i3)') istore
-call spectrum(ux2,uy2,Ek,Na,Nh,N)
+call spectrum(ux2,uy2,Ek,Nh,N)
 open(30, file = animE, status = 'new',form='formatted')
 do i = 1, Nh
     do j = 1, N
@@ -309,7 +308,7 @@ do i = 1, Nh
 end do
 close(30)
 write(animB(19:21),'(i3)') istore
-call spectrum(bx2,by2,Ek,Na,Nh,N)
+call spectrum(bx2,by2,Ek,Nh,N)
 open(30, file = animB, status = 'new',form='formatted')
 do i = 1, Nh
     do j = 1, N
@@ -318,7 +317,7 @@ do i = 1, Nh
 end do
 close(30)
 write(animrho(20:22),'(i3)') istore
-call spectrumrho(rho2,Ek,Na,Nh,N)
+call spectrumrho(rho2,Ek,Nh,N)
 open(30, file = animrho, status = 'new',form='formatted')
 do i = 1, Nh
     do j = 1, N
@@ -389,6 +388,7 @@ end program CMHD
 
 !*****************************************************************
 SUBROUTINE RandomInit(uxi,uyi,kinj,pi,Na,Nh,N)
+use fftw_mod
 ! Initial random field spectra
 implicit none
 integer,parameter :: seed = 800
@@ -396,8 +396,8 @@ double precision spectri(Na+1,Na+1), uxi(N,N), uyi(N,N)
 double precision pi, theta, knc, kinj
 double complex :: spectric1(Nh,N), spectric2(Nh,N)
 integer Na, N, Nh, ii, jj
-integer (kind=8) plan_for, plan_back
-include "fftw3.f"
+!integer (kind=8) plan_for, plan_back
+!include "fftw3.f"
 
 call srand(seed)
 uxi=0.
@@ -419,13 +419,9 @@ theta = rand()*2.*pi
 spectric2(jj,ii) = spectri(jj,ii)*cmplx(cos(theta),sin(theta))
 end do
 end do
-call dfftw_plan_dft_c2r_2d_(plan_back,N,N,spectric1,uxi,FFTW_ESTIMATE)
-call dfftw_execute_(plan_back)
-! call dfftw_destroy_plan(plan_back)
+call dfftw_execute_dft_c2r(plan_back,spectric1,uxi)
 uxi=uxi/real(N*N)
-call dfftw_plan_dft_c2r_2d_(plan_back,N,N,spectric2,uyi,FFTW_ESTIMATE)
-call dfftw_execute_(plan_back)
-call dfftw_destroy_plan(plan_back)
+call dfftw_execute_dft_c2r(plan_back,spectric2,uyi)
 uyi=uyi/real(N*N)
 
 RETURN
@@ -435,13 +431,12 @@ END SUBROUTINE RandomInit
 ! Random forcing spectrum
 !*****************************************************************
 SUBROUTINE RandomF(field1,kinj,pi,seed,Na,Nh,N)
+use fftw_mod
 implicit none
 double precision spectri(Na+1,Na+1), field1(N,N)
 double precision pi, theta, knc, kinj
 double complex :: spectric1(Nh,N)
 integer N, Nh, Na, ii, jj, seed
-integer (kind=8) plan_for, plan_back
-include "fftw3.f"
 
 call srand(seed)
 spectri=0.
@@ -458,9 +453,7 @@ theta = rand()*2.*pi
 spectric1(jj,ii) = spectri(jj,ii)*cmplx(cos(theta),sin(theta))
 end do
 end do
-call dfftw_plan_dft_c2r_2d_(plan_back,N,N,spectric1,field1,FFTW_ESTIMATE)
-call dfftw_execute_(plan_back)
-call dfftw_destroy_plan(plan_back)
+call dfftw_execute_dft_c2r(plan_back,spectric1,field1)
 
 RETURN
 END SUBROUTINE RandomF
@@ -474,7 +467,6 @@ double precision rho(N,N), ux(N,N), uy(N,N), bx(N,N), by(N,N)
 double precision uxdx(N,N), uydy(N,N), bxdx(N,N), bydy(N,N)
 double precision norm
 integer N, iia, iib
-include "fftw3.f"
 
 EU = 0.
 EB = 0.
@@ -484,9 +476,9 @@ divu = 0.
 divb = 0.
 do iia = 1, N
 do iib = 1, N
-EU = EU + (ux(iia,iib)**2 + uy(iia,iib)**2)/2.d0
-EB = EB + (bx(iia,iib)**2 + by(iia,iib)**2)/2.d0
-Erho = Erho + (1.d0+rho(iia,iib))*(ux(iia,iib)**2 + uy(iia,iib)**2)/2.d0
+EU = EU + 0.5d0*(ux(iia,iib)**2 + uy(iia,iib)**2)
+EB = EB + 0.5d0*(bx(iia,iib)**2 + by(iia,iib)**2)
+Erho = Erho + 0.5d0*(1.d0+rho(iia,iib))*(ux(iia,iib)**2 + uy(iia,iib)**2)
 divu = divu + uxdx(iia,iib) + uydy(iia,iib)
 divb = divb + bxdx(iia,iib) + bydy(iia,iib)
 Erho2 = Erho2 + rho(iia,iib)
@@ -509,7 +501,6 @@ SUBROUTINE energyF(ux,uy,EU,N)
 implicit none
 double precision EU, ux(N,N), uy(N,N)
 integer N, ii, jj
-include "fftw3.f"
 
 EU = 0.
 do ii = 1, N
@@ -522,53 +513,7 @@ EU = EU/real(N*N)
 RETURN
 END SUBROUTINE energyF
 
-!*****************************************************************
-SUBROUTINE spectrum(ux,uy,Ek,Na,Nh,N)
-!***********compute the 2D spectrum
-implicit none
-double precision ux(N,N), uy(N,N), Ek(Nh,N)
-double complex :: ukx(Nh,N), uky(Nh,N), Ek1(Nh,N)
-integer (kind=8) plan_for, plan_back
-integer Nh, N, Na, iia, iib
-include "fftw3.f"
 
-call dfftw_plan_dft_r2c_2d_(plan_for,N,N,ux,ukx,FFTW_ESTIMATE)
-call dfftw_execute_(plan_for)
-call dfftw_plan_dft_r2c_2d_(plan_for,N,N,uy,uky,FFTW_ESTIMATE)
-call dfftw_execute_(plan_for)
-Ek1 = abs(ukx)**2 + abs(uky)**2
-do iia = 1, Nh
-do iib = 1, N
-Ek(iia,iib) = real(Ek1(iia,iib))
-end do
-end do
-call dfftw_destroy_plan(plan_for)
-
-RETURN
-END SUBROUTINE spectrum
-
-!*****************************************************************
-SUBROUTINE spectrumrho(rho,Ek,Na,Nh,N)
-!***********compute the 2D spectrum
-implicit none
-double precision rho(N,N), Ek(Nh,N)
-double complex :: rhok(Nh,N), Ek1(Nh,N)
-integer (kind=8) plan_for, plan_back
-integer Nh, N, Na, iia, iib
-include "fftw3.f"
-
-call dfftw_plan_dft_r2c_2d_(plan_for,N,N,rho,rhok,FFTW_ESTIMATE)
-call dfftw_execute_(plan_for)
-Ek1 = abs(rhok)**2
-do iia = 1, Nh
-do iib = 1, N
-Ek(iia,iib) = real(Ek1(iia,iib))
-end do
-end do
-call dfftw_destroy_plan(plan_for)
-
-RETURN
-END SUBROUTINE spectrumrho
 
 !*****************************************************************
 !     Adaptive timestep
