@@ -14,7 +14,7 @@ clean:
 
 spectra: run_spectrum1 run_spectrum2 run_spectrum3
 
-SRC = FFTW_mod.f90 CMHD2D-v8.f90
+SRC = FFTW_mod.f90 spectral_mod.f90 CMHD2D-v8.f90
 
 # Build and run CMHD2D-v8
 CMHD2D-v8: FFTW_mod.f90 CMHD2D-v8.f90

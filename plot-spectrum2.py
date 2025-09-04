@@ -12,7 +12,7 @@ filenames = ['out_spectrumEB-1D-101',
             ]
 
 ista = 100
-iend = 119
+iend = 101
 iskip = 1
 filenames = [f'out_spectrumEB-1D-{i:03d}' for i in range(ista,iend+1,iskip)]
 

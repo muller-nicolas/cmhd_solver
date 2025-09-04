@@ -13,6 +13,7 @@ Program CMHD
 
 use, intrinsic :: iso_c_binding
 use fftw_mod
+use spectral_mod
 
 implicit none
 integer, parameter :: N = 256
@@ -39,9 +40,6 @@ double precision nonlinby0(N,N), nonlinby1(N,N), nonlinuxbdx(N,N)
 double complex :: ukx2(Nh,N), uky2(Nh,N), bkx2(Nh,N), bky2(Nh,N)
 double complex :: rhok(Nh,N)
 
-include "fftw3.f"
-
-integer (kind=8) plan_for, plan_back
 integer i, j, ndeltaT, inrj, ispec, it, istore, irestart, nrestart
 character (len=11) :: animR='restart-'
 character (len=21) :: animE='out_spectrumEU-2D-'
@@ -80,9 +78,8 @@ off = 0.d0   !*********forcing => off = 1.d0
 time = 0.d0
 nrestart = 1    !*********for a restart => nrestart = 0
 
-
-call init_fftw(plan_for, plan_back, ux0, ukx2, N, Nh)
-call Initk(kx,ky,kd,dk,kinj,Nh,N)
+call init_fftw(ux0, ukx2, N, Nh)
+call Initk(kx,ky,kd,dk,Nh,N)
 
 !***************** In case of no restart the code starts down here
 if (nrestart .ne. 0) then
@@ -373,7 +370,7 @@ end if
 
 end do ! end of the temporal loop
 
-! call end_fftw(plan_for, plan_back)
+call end_fftw
 
 write(animR(9:11),'(i3)') istore
 open(30, file = animR, status = 'new',form='unformatted')
@@ -389,23 +386,6 @@ write(*,*) "cpu time", t2-t1
 
 print *, 'OK'
 end program CMHD
-
-!*****************************************************************
-SUBROUTINE Initk(kkx,kky,kkkd,ddk,kinj,Nh,N)
-! Initialization of the wavenumbers
-implicit none
-double precision kkx(N), kky(Nh), kkkd(Nh,N), ddk, kinj
-integer Nh, N, ii
-
-kky=(/(dfloat(ii-1)*ddk,ii=1,Nh,1)/)
-kkx(1:N/2)=(/(dfloat(ii-1)*ddk,ii=1,N/2,1)/)
-kkx(N/2+1:N)=(/(dfloat(ii-1-N)*ddk,ii=N/2+1,N,1)/)
-do ii = 1, N
-kkkd(:,ii) = kkx(ii)*kkx(ii) + kky(:)*kky(:)
-end do
-
-RETURN
-END SUBROUTINE Initk
 
 !*****************************************************************
 SUBROUTINE RandomInit(uxi,uyi,kinj,pi,Na,Nh,N)
@@ -484,58 +464,6 @@ call dfftw_destroy_plan(plan_back)
 
 RETURN
 END SUBROUTINE RandomF
-
-!*****************************************************************
-SUBROUTINE derivex(aa,bb,kkx,Nh,N)
-! Computation of the x-derivative
-implicit none
-complex*16, parameter :: imag = (0.0d0,1.0d0)
-double precision aa(N,N), bb(N,N), kkx(N)
-double complex :: cc(Nh,N)
-integer (kind=8) plan_for, plan_back
-integer Nh, N, ii
-include "fftw3.f"
-
-call dfftw_plan_dft_r2c_2d_(plan_for,N,N,aa,cc,FFTW_ESTIMATE)
-call dfftw_execute_(plan_for)
-! call dfftw_execute_dft_r2c(plan_for,aa,cc)
-do ii = 1, N
-cc(:,ii) = imag*cc(:,ii)*kkx(ii)
-end do
-call dfftw_plan_dft_c2r_2d_(plan_back,N,N,cc,bb,FFTW_ESTIMATE)
-! call dfftw_execute_dft_c2r(plan_back,cc,bb)
-call dfftw_execute_(plan_back)
-call dfftw_destroy_plan(plan_back)
-call dfftw_destroy_plan(plan_for)
-bb=bb/real(N*N)
-
-RETURN
-END SUBROUTINE derivex
-
-!*****************************************************************
-SUBROUTINE derivey(aa,bb,kky,Nh,N)
-! Computation of the y-derivative
-implicit none
-complex*16, parameter :: imag = (0.0d0,1.0d0)
-double precision aa(N,N), bb(N,N), kky(Nh)
-double complex :: cc(Nh,N)
-integer (kind=8) plan_for, plan_back
-integer Nh, N, jj
-include "fftw3.f"
-
-call dfftw_plan_dft_r2c_2d_(plan_for,N,N,aa,cc,FFTW_ESTIMATE)
-call dfftw_execute_(plan_for)
-do jj = 1, Nh
-cc(jj,:) = imag*cc(jj,:)*kky(jj)
-end do
-call dfftw_plan_dft_c2r_2d_(plan_back,N,N,cc,bb,FFTW_ESTIMATE)
-call dfftw_execute_(plan_back)
-call dfftw_destroy_plan(plan_back)
-call dfftw_destroy_plan(plan_for)
-bb=bb/real(N*N)
-
-RETURN
-END SUBROUTINE derivey
 
 !*****************************************************************
 SUBROUTINE energy(rho,ux,uy,bx,by,uxdx,uydy,bxdx,bydy,EU,EB,Erho,Erho2,divu,divb,N)

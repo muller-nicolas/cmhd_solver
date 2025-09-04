@@ -4,5 +4,6 @@ fort*
 *.o
 restart*
 *.png
+run*/
 
 
