@@ -14,16 +14,15 @@ Nt = P[1]
 N = int(P[1]/P[2])
 ki = P[3]
 x = np.linspace(0, Nt*DeltaT*ki, N)
-xx = time
 
 plt.subplot(311)
 #plt.ylim(1,5.5)
-plt.plot(x,EU,label='deltaT')
+plt.plot(time,EU,label='deltaT')
 plt.grid(True,linestyle=':', linewidth=1)
 plt.legend()
 
 plt.subplot(312)
-plt.plot(x,EB,label='nu')
+plt.plot(time,EB,label='nu')
 plt.xlabel('$t$')
 plt.grid(True,linestyle=':', linewidth=1)
 #plt.ylim(0,0.6)
@@ -36,5 +35,5 @@ plt.grid(True,linestyle=':', linewidth=1)
 #plt.ylim(0,0.6)
 plt.legend()
 
-plt.savefig("Figure-Time2.png",dpi=600)
+# plt.savefig("Figure-Time2.png",dpi=600)
 plt.show()

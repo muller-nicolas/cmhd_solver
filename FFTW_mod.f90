@@ -1,44 +1,27 @@
-module fftw_wrapper
-    use, intrinsic :: iso_c_binding
-    implicit none
+module FFTW_mod
+use, intrinsic :: iso_c_binding
+implicit none
 
-    ! FFTW constants
-    integer, parameter :: FFTW_MEASURE = 0
-    integer, parameter :: FFTW_ESTIMATE = 64
+contains
 
-    interface
-        ! Plan creation (double precision, R2C)
-        function fftw_plan_dft_r2c_2d(n0, n1, in, out, flags) bind(C, name="fftw_plan_dft_r2c_2d")
-            import :: c_int, c_ptr
-            integer(c_int), value :: n0, n1, flags
-            type(c_ptr), value :: in, out
-            type(c_ptr) :: fftw_plan_dft_r2c_2d
-        end function
+SUBROUTINE init_fftw(plan_for, plan_back, aa_in, bb_in, N, Nh)
+use, intrinsic :: iso_c_binding
+integer, intent(in) :: N, Nh
+double precision, intent(in) :: aa_in(N,N)
+complex*16, intent(in) :: bb_in(Nh,N)
+integer (kind=8), intent(out) ::  plan_for, plan_back
+include "fftw3.f"
 
-        ! Plan creation (double precision, C2R)
-        function fftw_plan_dft_c2r_2d(n0, n1, in, out, flags) bind(C, name="fftw_plan_dft_c2r_2d")
-            import :: c_int, c_ptr
-            integer(c_int), value :: n0, n1, flags
-            type(c_ptr), value :: in, out
-            type(c_ptr) :: fftw_plan_dft_c2r_2d
-        end function
+call dfftw_plan_dft_r2c_2d_(plan_for, N, N, aa_in, bb_in, FFTW_ESTIMATE)
+call dfftw_plan_dft_c2r_2d_(plan_back, N, N, bb_in, aa_in, FFTW_ESTIMATE)
 
-        ! Execution routines (generic, takes plan + arrays)
-        subroutine fftw_execute_dft_r2c(plan, in, out) bind(C, name="fftw_execute_dft_r2c")
-            import :: c_ptr
-            type(c_ptr), value :: plan, in, out
-        end subroutine
+RETURN
+END SUBROUTINE init_fftw
 
-        subroutine fftw_execute_dft_c2r(plan, in, out) bind(C, name="fftw_execute_dft_c2r")
-            import :: c_ptr
-            type(c_ptr), value :: plan, in, out
-        end subroutine
+SUBROUTINE end_fftw(plan_for, plan_back)
+integer (kind=8) plan_for, plan_back
+call dfftw_destroy_plan(plan_back)
+call dfftw_destroy_plan(plan_for)
+END SUBROUTINE end_fftw
 
-        ! Destroy plan
-        subroutine fftw_destroy_plan(plan) bind(C, name="fftw_destroy_plan")
-            import :: c_ptr
-            type(c_ptr), value :: plan
-        end subroutine
-    end interface
-end module fftw_wrapper
-
+END MODULE FFTW_mod

@@ -10,7 +10,10 @@
 ! TODO: Save fields as binary files
 
 Program CMHD
-! use, intrinsic :: iso_c_binding
+
+use, intrinsic :: iso_c_binding
+use fftw_mod
+
 implicit none
 integer, parameter :: N = 256
 integer, parameter :: Nh = N/2+1
@@ -57,11 +60,11 @@ character (len=15) :: animdivu='out_divu-2D-'
 call cpu_time(time=t1)
 
 !**************Initialization
-istore = 110
+istore = 100
 pi = 3.141592653589793238d0
 deltaT = 1.d-4
 deltaTi = deltaT/10.d0
-ndeltaT = 5000
+ndeltaT = 1000
 inrj = 1
 ispec = 500  !*********must be a multiple of inrj
 irestart = 1000
@@ -75,10 +78,10 @@ a = 1.d0  !*********a=0. => linear equations; a=1. non-linear equations
 amp = 1.d-3
 off = 0.d0   !*********forcing => off = 1.d0
 time = 0.d0
-nrestart = 0    !*********for a restart => nrestart = 0
+nrestart = 1    !*********for a restart => nrestart = 0
 
 
-
+call init_fftw(plan_for, plan_back, ux0, ukx2, N, Nh)
 call Initk(kx,ky,kd,dk,kinj,Nh,N)
 
 !***************** In case of no restart the code starts down here
@@ -211,85 +214,55 @@ by2 = by1 + deltaT*(1.5*nonlinby1 - 0.5*nonlinby0)
 ! Implicit method for dissipation term in rho
 
 norm = 1.d0/real(N*N)
-call dfftw_plan_dft_r2c_2d_(plan_for,N,N,rho2,rhok,FFTW_ESTIMATE)
-call dfftw_execute_(plan_for)
-! call dfftw_execute_r2c_2d(plan_for,rho2,rhok)
+call dfftw_execute_dft_r2c(plan_for,rho2,rhok)
 do i = 1, N
     do j = 1, Nh
         rhok(j,i) = rhok(j,i)*exp(-(kd(j,i)*nu*kd(j,i)+cmplx(0,1)*disp*(kx(i)**3+ky(j)**3))*deltaT)
     end do
 end do
-call dfftw_plan_dft_c2r_2d_(plan_back,N,N,rhok,rho2,FFTW_ESTIMATE)
-call dfftw_execute_(plan_back)
-! call dfftw_execute_c2r_2d(plan_back,rhok,rho2)
-call dfftw_destroy_plan(plan_back)
-call dfftw_destroy_plan(plan_for)
+call dfftw_execute_dft_c2r(plan_back,rhok,rho2)
 rho2 = rho2*norm
 
 ! Implicit method for dissipation term in ux
-call dfftw_plan_dft_r2c_2d_(plan_for,N,N,ux2,ukx2,FFTW_ESTIMATE)
-call dfftw_execute_(plan_for)
-! call dfftw_execute_r2c_2d(plan_for,ux2,ukx2)
+call dfftw_execute_dft_r2c(plan_for,ux2,ukx2)
 do i = 1, N
     do j = 1, Nh
         ukx2(j,i) = ukx2(j,i)*exp(-(kd(j,i)*nu*kd(j,i)+cmplx(0,1)*disp*(kx(i)**3+ky(j)**3))*deltaT)
     end do
 end do
 !ukx2(1,1)=0.d0
-call dfftw_plan_dft_c2r_2d_(plan_back,N,N,ukx2,ux2,FFTW_ESTIMATE)
-call dfftw_execute_(plan_back)
-! call dfftw_execute_c2r_2d(plan_back,ukx2,ux2)
-call dfftw_destroy_plan(plan_back)
-call dfftw_destroy_plan(plan_for)
+call dfftw_execute_dft_c2r(plan_back,ukx2,ux2)
 ux2 = ux2*norm
 
 ! Implicit method for dissipation term in uy
-call dfftw_plan_dft_r2c_2d_(plan_for,N,N,uy2,uky2,FFTW_ESTIMATE)
-call dfftw_execute_(plan_for)
-! call dfftw_execute_r2c_2d(plan_for,uy2,uky2)
+call dfftw_execute_dft_r2c(plan_for,uy2,uky2)
 do i = 1, N
     do j = 1, Nh
         uky2(j,i) = uky2(j,i)*exp(-(kd(j,i)*nu*kd(j,i)+cmplx(0,1)*disp*(kx(i)**3+ky(j)**3))*deltaT)
     end do
 end do
 !uky2(1,1)=0.d0
-call dfftw_plan_dft_c2r_2d_(plan_back,N,N,uky2,uy2,FFTW_ESTIMATE)
-call dfftw_execute_(plan_back)
-! call dfftw_execute_c2r_2d(plan_back,uky2,uy2)
-call dfftw_destroy_plan(plan_back)
-call dfftw_destroy_plan(plan_for)
+call dfftw_execute_dft_c2r(plan_back,uky2,uy2)
 uy2 = uy2*norm
 
 ! Implicit method for dissipation term in bx
-call dfftw_plan_dft_r2c_2d_(plan_for,N,N,bx2,bkx2,FFTW_ESTIMATE)
-call dfftw_execute_(plan_for)
-! call dfftw_execute_r2c_2d(plan_for,bx2,bkx2)
+call dfftw_execute_dft_r2c(plan_for,bx2,bkx2)
 do i = 1, N
     do j = 1, Nh
         bkx2(j,i) = bkx2(j,i)*exp(-(kd(j,i)*nu*kd(j,i)+cmplx(0,1)*disp*(kx(i)**3+ky(j)**3))*deltaT)
     end do
 end do
-call dfftw_plan_dft_c2r_2d_(plan_back,N,N,bkx2,bx2,FFTW_ESTIMATE)
-call dfftw_execute_(plan_back)
-! call dfftw_execute_c2r_2d(plan_back,bkx2,bx2)
-call dfftw_destroy_plan(plan_back)
-call dfftw_destroy_plan(plan_for)
+call dfftw_execute_dft_c2r(plan_back,bkx2,bx2)
 bx2 = bx2*norm
 
 ! Implicit method for dissipation term in by
-call dfftw_plan_dft_r2c_2d_(plan_for,N,N,by2,bky2,FFTW_ESTIMATE)
-call dfftw_execute_(plan_for)
-! call dfftw_execute_r2c_2d(plan_for,by2,bky2)
+call dfftw_execute_dft_r2c(plan_for,by2,bky2)
 do i = 1, N
     do j = 1, Nh
         bky2(j,i) = bky2(j,i)*exp(-(kd(j,i)*nu*kd(j,i)+cmplx(0,1)*disp*(kx(i)**3+ky(j)**3))*deltaT)
     end do
 end do
-call dfftw_plan_dft_c2r_2d_(plan_back,N,N,bky2,by2,FFTW_ESTIMATE)
-call dfftw_execute_(plan_back)
-! call dfftw_execute_c2r_2d(plan_back,bky2,by2)
-call dfftw_destroy_plan(plan_back)
-call dfftw_destroy_plan(plan_for)
+call dfftw_execute_dft_c2r(plan_back,bky2,by2)
 by2 = by2*norm
 
 ! Rename variables for saving and use them as initial values for next loop
@@ -399,6 +372,8 @@ istore = istore + 1
 end if
 
 end do ! end of the temporal loop
+
+! call end_fftw(plan_for, plan_back)
 
 write(animR(9:11),'(i3)') istore
 open(30, file = animR, status = 'new',form='unformatted')
@@ -523,10 +498,12 @@ include "fftw3.f"
 
 call dfftw_plan_dft_r2c_2d_(plan_for,N,N,aa,cc,FFTW_ESTIMATE)
 call dfftw_execute_(plan_for)
+! call dfftw_execute_dft_r2c(plan_for,aa,cc)
 do ii = 1, N
 cc(:,ii) = imag*cc(:,ii)*kkx(ii)
 end do
 call dfftw_plan_dft_c2r_2d_(plan_back,N,N,cc,bb,FFTW_ESTIMATE)
+! call dfftw_execute_dft_c2r(plan_back,cc,bb)
 call dfftw_execute_(plan_back)
 call dfftw_destroy_plan(plan_back)
 call dfftw_destroy_plan(plan_for)
@@ -567,6 +544,7 @@ implicit none
 double precision EU, EB, Erho, Erho2, divu, divb
 double precision rho(N,N), ux(N,N), uy(N,N), bx(N,N), by(N,N)
 double precision uxdx(N,N), uydy(N,N), bxdx(N,N), bydy(N,N)
+double precision norm
 integer N, iia, iib
 include "fftw3.f"
 
@@ -586,12 +564,13 @@ divb = divb + bxdx(iia,iib) + bydy(iia,iib)
 Erho2 = Erho2 + rho(iia,iib)
 end do
 end do
-EU = EU/real(N*N)
-EB = EB/real(N*N)
-Erho = Erho/real(N*N)
-Erho2 = Erho2/real(N*N)
-divu = divu/real(N*N)
-divb = divb/real(N*N)
+norm = 1.d0/real(N*N)
+EU = EU*norm
+EB = EB*norm
+Erho = Erho*norm
+Erho2 = Erho2*norm
+divu = divu*norm
+divb = divb*norm
 
 RETURN
 END SUBROUTINE energy

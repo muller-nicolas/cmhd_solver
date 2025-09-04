@@ -43,5 +43,5 @@ plt.xlabel('$t$')
 plt.grid(True,linestyle=':', linewidth=1)
 plt.legend()
 
-plt.savefig("Figure-Time.png",dpi=600)
+# plt.savefig("Figure-Time.png",dpi=600)
 plt.show()

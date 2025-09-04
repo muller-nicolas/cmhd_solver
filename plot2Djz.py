@@ -5,7 +5,7 @@ from matplotlib import cm
 # from matplotlib.ticker import LinearLocator, FormatStrFormatter
 import numpy as np
 
-time = 119
+time = 101
 P = np.loadtxt('out_parameter')
 N = int(P[5])
 size=1.#2.*np.pi

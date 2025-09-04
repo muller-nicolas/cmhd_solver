@@ -15,7 +15,7 @@ read(30,*) deltaT, ndeltaT, inrj, kinj, ispec
 close(30)
 
 Nmax = int(ndeltaT/ispec)
-istore = 110
+istore = 100
 
 do ii = 1, Nmax
 write(anim2D(19:21),'(i3)') istore
