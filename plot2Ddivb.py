@@ -1,14 +1,16 @@
 from mpl_toolkits.mplot3d import Axes3D
 import matplotlib.pyplot as plt
-import math
+# import math
 from matplotlib import cm
-from matplotlib.ticker import LinearLocator, FormatStrFormatter
+# from matplotlib.ticker import LinearLocator, FormatStrFormatter
 import numpy as np
 
+time = 119
 P = np.loadtxt('out_parameter')
 N = int(P[5])
 size=2.*np.pi
-L = np.loadtxt('out_divb-2D-109')
+
+L = np.loadtxt(f'out_divb-2D-{time}')
 Z0 = np.reshape(L,(N,N))
 #Z1 = pow(abs(Z0)/abs(Z0).max(),1)*Z0/abs(Z0)
 #Z1 = pow(abs(Z0)/abs(Z0).max(),3)*Z0/abs(Z0)
@@ -29,5 +31,5 @@ plt.xlabel('$x$')
 plt.ylabel('$y$')
 cbar = fig.colorbar(im)
 
-plt.savefig("Figure-Plot2D-divb-111.png",dpi=1200)
+# plt.savefig(f"Figure-Plot2D-divb-{time}.png",dpi=1200)
 plt.show()

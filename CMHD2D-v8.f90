@@ -3,17 +3,21 @@
 !  Sébastien Galtier - LPP - Version 8 (July 2025)
 !*********************************************************************
 
-! TODO: define kk2(j,i) = kd(j,i)*kd(j,i)
 ! TODO: Declare global plans for forward and backward fft
+! TODO: Dealisaing?
+! TODO: RK4
+! TODO: Parallelisation: MPI, openMP or GPU
+! TODO: Save fields as binary files
 
 Program CMHD
+! use, intrinsic :: iso_c_binding
 implicit none
-integer, parameter :: N = 128
+integer, parameter :: N = 256
 integer, parameter :: Nh = N/2+1
 integer, parameter :: Na = N/3  ! partie entière
 double precision pi, dk, deltaT, deltaTi, nu, eta, Ek(Nh,N)
 double precision kx(N), ky(Nh), kd(Nh,N), kinj, t1, t2
-double precision divu, divb, ta, time, disp
+double precision divu, divb, ta, time, disp, norm
 double precision rho0(N,N), ux0(N,N), uy0(N,N), bx0(N,N), by0(N,N)
 double precision rho1(N,N), ux1(N,N), uy1(N,N), bx1(N,N), by1(N,N)
 double precision rho2(N,N), ux2(N,N), uy2(N,N), bx2(N,N), by2(N,N)
@@ -31,7 +35,9 @@ double precision nonlinbx1(N,N), EU, EB, Erho, Erho2, a, amp, off
 double precision nonlinby0(N,N), nonlinby1(N,N), nonlinuxbdx(N,N)
 double complex :: ukx2(Nh,N), uky2(Nh,N), bkx2(Nh,N), bky2(Nh,N)
 double complex :: rhok(Nh,N)
+
 include "fftw3.f"
+
 integer (kind=8) plan_for, plan_back
 integer i, j, ndeltaT, inrj, ispec, it, istore, irestart, nrestart
 character (len=11) :: animR='restart-'
@@ -51,26 +57,34 @@ character (len=15) :: animdivu='out_divu-2D-'
 call cpu_time(time=t1)
 
 !**************Initialization
-istore = 100
+istore = 110
 pi = 3.141592653589793238d0
 deltaT = 1.d-4
 deltaTi = deltaT/10.d0
-ndeltaT = 10000
+ndeltaT = 5000
 inrj = 1
 ispec = 500  !*********must be a multiple of inrj
 irestart = 1000
 kinj = 3.
 dk = 2.*pi
-nu = 1.d-6
+! nu = 1.d-6
+nu = 6.d-8
 eta = nu
 disp = 3.d-5  ! without dispersion => 0.d0
 a = 1.d0  !*********a=0. => linear equations; a=1. non-linear equations
 amp = 1.d-3
 off = 0.d0   !*********forcing => off = 1.d0
 time = 0.d0
-nrestart = 0    !*********for a restart => nrestrat = 0
+nrestart = 0    !*********for a restart => nrestart = 0
 
-open(30, file = 'out_parameter', status = 'new',form='formatted')
+
+
+call Initk(kx,ky,kd,dk,kinj,Nh,N)
+
+!***************** In case of no restart the code starts down here
+if (nrestart .ne. 0) then
+
+open(30, file='out_parameter', status='new', form='formatted')
 write(30,*) deltaT, ndeltaT, inrj, kinj, ispec, N, dk
 close(30)
 
@@ -84,10 +98,6 @@ open(51, file = 'out_deltaT', status = 'new',form='formatted')
 open(52, file = 'out_time', status = 'new',form='formatted')
 open(53, file = 'out_nu', status = 'new',form='formatted')
 
-call Initk(kx,ky,kd,dk,kinj,Nh,N)
-
-!***************** In case of no restart the code starts down here
-if (nrestart .ne. 0) then
 call RandomInit(ux0,uy0,kinj,pi,Na,Nh,N)
 call energyF(ux0,uy0,EU,N)
 ux0=amp*ux0/sqrt(EU)
@@ -155,7 +165,7 @@ call derivex(uy1,uydx1,kx,Nh,N)
 call derivex(bx1,bxdx1,kx,Nh,N)
 call derivex(by1,bydx1,kx,Nh,N)
 
-! d/dx
+! d/dy
 call derivey(ux1,uxdy1,ky,Nh,N)
 call derivey(uy1,uydy1,ky,Nh,N)
 call derivey(bx1,bxdy1,ky,Nh,N)
@@ -199,76 +209,88 @@ bx2 = bx1 + deltaT*(1.5*nonlinbx1 - 0.5*nonlinbx0)
 by2 = by1 + deltaT*(1.5*nonlinby1 - 0.5*nonlinby0)
 
 ! Implicit method for dissipation term in rho
-call dfftw_plan_dft_r2c_2d_(plan_for,N,N,rho2,rhok,64)
+
+norm = 1.d0/real(N*N)
+call dfftw_plan_dft_r2c_2d_(plan_for,N,N,rho2,rhok,FFTW_ESTIMATE)
 call dfftw_execute_(plan_for)
+! call dfftw_execute_r2c_2d(plan_for,rho2,rhok)
 do i = 1, N
-do j = 1, Nh
-rhok(j,i) = rhok(j,i)*exp(-(kd(j,i)*nu*kd(j,i)+cmplx(0,1)*disp*(kx(i)**3+ky(j)**3))*deltaT)
+    do j = 1, Nh
+        rhok(j,i) = rhok(j,i)*exp(-(kd(j,i)*nu*kd(j,i)+cmplx(0,1)*disp*(kx(i)**3+ky(j)**3))*deltaT)
+    end do
 end do
-end do
-call dfftw_plan_dft_c2r_2d_(plan_back,N,N,rhok,rho2,64)
+call dfftw_plan_dft_c2r_2d_(plan_back,N,N,rhok,rho2,FFTW_ESTIMATE)
 call dfftw_execute_(plan_back)
+! call dfftw_execute_c2r_2d(plan_back,rhok,rho2)
 call dfftw_destroy_plan(plan_back)
 call dfftw_destroy_plan(plan_for)
-rho2 = rho2/real(N*N)
+rho2 = rho2*norm
 
 ! Implicit method for dissipation term in ux
-call dfftw_plan_dft_r2c_2d_(plan_for,N,N,ux2,ukx2,64)
+call dfftw_plan_dft_r2c_2d_(plan_for,N,N,ux2,ukx2,FFTW_ESTIMATE)
 call dfftw_execute_(plan_for)
+! call dfftw_execute_r2c_2d(plan_for,ux2,ukx2)
 do i = 1, N
-do j = 1, Nh
-ukx2(j,i) = ukx2(j,i)*exp(-(kd(j,i)*nu*kd(j,i)+cmplx(0,1)*disp*(kx(i)**3+ky(j)**3))*deltaT)
-end do
+    do j = 1, Nh
+        ukx2(j,i) = ukx2(j,i)*exp(-(kd(j,i)*nu*kd(j,i)+cmplx(0,1)*disp*(kx(i)**3+ky(j)**3))*deltaT)
+    end do
 end do
 !ukx2(1,1)=0.d0
-call dfftw_plan_dft_c2r_2d_(plan_back,N,N,ukx2,ux2,64)
+call dfftw_plan_dft_c2r_2d_(plan_back,N,N,ukx2,ux2,FFTW_ESTIMATE)
 call dfftw_execute_(plan_back)
+! call dfftw_execute_c2r_2d(plan_back,ukx2,ux2)
 call dfftw_destroy_plan(plan_back)
 call dfftw_destroy_plan(plan_for)
-ux2 = ux2/real(N*N)
+ux2 = ux2*norm
 
 ! Implicit method for dissipation term in uy
-call dfftw_plan_dft_r2c_2d_(plan_for,N,N,uy2,uky2,64)
+call dfftw_plan_dft_r2c_2d_(plan_for,N,N,uy2,uky2,FFTW_ESTIMATE)
 call dfftw_execute_(plan_for)
+! call dfftw_execute_r2c_2d(plan_for,uy2,uky2)
 do i = 1, N
-do j = 1, Nh
-uky2(j,i) = uky2(j,i)*exp(-(kd(j,i)*nu*kd(j,i)+cmplx(0,1)*disp*(kx(i)**3+ky(j)**3))*deltaT)
-end do
+    do j = 1, Nh
+        uky2(j,i) = uky2(j,i)*exp(-(kd(j,i)*nu*kd(j,i)+cmplx(0,1)*disp*(kx(i)**3+ky(j)**3))*deltaT)
+    end do
 end do
 !uky2(1,1)=0.d0
-call dfftw_plan_dft_c2r_2d_(plan_back,N,N,uky2,uy2,64)
+call dfftw_plan_dft_c2r_2d_(plan_back,N,N,uky2,uy2,FFTW_ESTIMATE)
 call dfftw_execute_(plan_back)
+! call dfftw_execute_c2r_2d(plan_back,uky2,uy2)
 call dfftw_destroy_plan(plan_back)
 call dfftw_destroy_plan(plan_for)
-uy2 = uy2/real(N*N)
+uy2 = uy2*norm
 
 ! Implicit method for dissipation term in bx
-call dfftw_plan_dft_r2c_2d_(plan_for,N,N,bx2,bkx2,64)
+call dfftw_plan_dft_r2c_2d_(plan_for,N,N,bx2,bkx2,FFTW_ESTIMATE)
 call dfftw_execute_(plan_for)
+! call dfftw_execute_r2c_2d(plan_for,bx2,bkx2)
 do i = 1, N
-do j = 1, Nh
-bkx2(j,i) = bkx2(j,i)*exp(-(kd(j,i)*nu*kd(j,i)+cmplx(0,1)*disp*(kx(i)**3+ky(j)**3))*deltaT)
+    do j = 1, Nh
+        bkx2(j,i) = bkx2(j,i)*exp(-(kd(j,i)*nu*kd(j,i)+cmplx(0,1)*disp*(kx(i)**3+ky(j)**3))*deltaT)
+    end do
 end do
-end do
-call dfftw_plan_dft_c2r_2d_(plan_back,N,N,bkx2,bx2,64)
+call dfftw_plan_dft_c2r_2d_(plan_back,N,N,bkx2,bx2,FFTW_ESTIMATE)
 call dfftw_execute_(plan_back)
+! call dfftw_execute_c2r_2d(plan_back,bkx2,bx2)
 call dfftw_destroy_plan(plan_back)
 call dfftw_destroy_plan(plan_for)
-bx2 = bx2/real(N*N)
+bx2 = bx2*norm
 
 ! Implicit method for dissipation term in by
-call dfftw_plan_dft_r2c_2d_(plan_for,N,N,by2,bky2,64)
+call dfftw_plan_dft_r2c_2d_(plan_for,N,N,by2,bky2,FFTW_ESTIMATE)
 call dfftw_execute_(plan_for)
+! call dfftw_execute_r2c_2d(plan_for,by2,bky2)
 do i = 1, N
-do j = 1, Nh
-bky2(j,i) = bky2(j,i)*exp(-(kd(j,i)*nu*kd(j,i)+cmplx(0,1)*disp*(kx(i)**3+ky(j)**3))*deltaT)
+    do j = 1, Nh
+        bky2(j,i) = bky2(j,i)*exp(-(kd(j,i)*nu*kd(j,i)+cmplx(0,1)*disp*(kx(i)**3+ky(j)**3))*deltaT)
+    end do
 end do
-end do
-call dfftw_plan_dft_c2r_2d_(plan_back,N,N,bky2,by2,64)
+call dfftw_plan_dft_c2r_2d_(plan_back,N,N,bky2,by2,FFTW_ESTIMATE)
 call dfftw_execute_(plan_back)
+! call dfftw_execute_c2r_2d(plan_back,bky2,by2)
 call dfftw_destroy_plan(plan_back)
 call dfftw_destroy_plan(plan_for)
-by2 = by2/real(N*N)
+by2 = by2*norm
 
 ! Rename variables for saving and use them as initial values for next loop
 rho1=rho2
@@ -311,27 +333,27 @@ write(animE(19:21),'(i3)') istore
 call spectrum(ux2,uy2,Ek,Na,Nh,N)
 open(30, file = animE, status = 'new',form='formatted')
 do i = 1, Nh
-do j = 1, N
-write(30,*) Ek(i,j)
-end do
+    do j = 1, N
+        write(30,*) Ek(i,j)
+    end do
 end do
 close(30)
 write(animB(19:21),'(i3)') istore
 call spectrum(bx2,by2,Ek,Na,Nh,N)
 open(30, file = animB, status = 'new',form='formatted')
 do i = 1, Nh
-do j = 1, N
-write(30,*) Ek(i,j)
-end do
+    do j = 1, N
+        write(30,*) Ek(i,j)
+    end do
 end do
 close(30)
 write(animrho(20:22),'(i3)') istore
 call spectrumrho(rho2,Ek,Na,Nh,N)
 open(30, file = animrho, status = 'new',form='formatted')
 do i = 1, Nh
-do j = 1, N
-write(30,*) Ek(i,j)
-end do
+    do j = 1, N
+        write(30,*) Ek(i,j)
+    end do
 end do
 close(30)
 !
@@ -392,6 +414,7 @@ write(*,*) "cpu time", t2-t1
 
 print *, 'OK'
 end program CMHD
+
 !*****************************************************************
 SUBROUTINE Initk(kkx,kky,kkkd,ddk,kinj,Nh,N)
 ! Initialization of the wavenumbers
@@ -408,6 +431,7 @@ end do
 
 RETURN
 END SUBROUTINE Initk
+
 !*****************************************************************
 SUBROUTINE RandomInit(uxi,uyi,kinj,pi,Na,Nh,N)
 ! Initial random field spectra
@@ -418,6 +442,7 @@ double precision pi, theta, knc, kinj
 double complex :: spectric1(Nh,N), spectric2(Nh,N)
 integer Na, N, Nh, ii, jj
 integer (kind=8) plan_for, plan_back
+include "fftw3.f"
 
 call srand(seed)
 uxi=0.
@@ -439,17 +464,18 @@ theta = rand()*2.*pi
 spectric2(jj,ii) = spectri(jj,ii)*cmplx(cos(theta),sin(theta))
 end do
 end do
-call dfftw_plan_dft_c2r_2d_(plan_back,N,N,spectric1,uxi,64)
+call dfftw_plan_dft_c2r_2d_(plan_back,N,N,spectric1,uxi,FFTW_ESTIMATE)
 call dfftw_execute_(plan_back)
-call dfftw_destroy_plan(plan_back)
+! call dfftw_destroy_plan(plan_back)
 uxi=uxi/real(N*N)
-call dfftw_plan_dft_c2r_2d_(plan_back,N,N,spectric2,uyi,64)
+call dfftw_plan_dft_c2r_2d_(plan_back,N,N,spectric2,uyi,FFTW_ESTIMATE)
 call dfftw_execute_(plan_back)
 call dfftw_destroy_plan(plan_back)
 uyi=uyi/real(N*N)
 
 RETURN
 END SUBROUTINE RandomInit
+
 !*****************************************************************
 ! Random forcing spectrum
 !*****************************************************************
@@ -460,6 +486,7 @@ double precision pi, theta, knc, kinj
 double complex :: spectric1(Nh,N)
 integer N, Nh, Na, ii, jj, seed
 integer (kind=8) plan_for, plan_back
+include "fftw3.f"
 
 call srand(seed)
 spectri=0.
@@ -476,27 +503,30 @@ theta = rand()*2.*pi
 spectric1(jj,ii) = spectri(jj,ii)*cmplx(cos(theta),sin(theta))
 end do
 end do
-call dfftw_plan_dft_c2r_2d_(plan_back,N,N,spectric1,field1,64)
+call dfftw_plan_dft_c2r_2d_(plan_back,N,N,spectric1,field1,FFTW_ESTIMATE)
 call dfftw_execute_(plan_back)
 call dfftw_destroy_plan(plan_back)
 
 RETURN
 END SUBROUTINE RandomF
+
 !*****************************************************************
 SUBROUTINE derivex(aa,bb,kkx,Nh,N)
 ! Computation of the x-derivative
 implicit none
+complex*16, parameter :: imag = (0.0d0,1.0d0)
 double precision aa(N,N), bb(N,N), kkx(N)
 double complex :: cc(Nh,N)
 integer (kind=8) plan_for, plan_back
 integer Nh, N, ii
+include "fftw3.f"
 
-call dfftw_plan_dft_r2c_2d_(plan_for,N,N,aa,cc,64)
+call dfftw_plan_dft_r2c_2d_(plan_for,N,N,aa,cc,FFTW_ESTIMATE)
 call dfftw_execute_(plan_for)
 do ii = 1, N
-cc(:,ii) = cmplx(0,1)*cc(:,ii)*kkx(ii)
+cc(:,ii) = imag*cc(:,ii)*kkx(ii)
 end do
-call dfftw_plan_dft_c2r_2d_(plan_back,N,N,cc,bb,64)
+call dfftw_plan_dft_c2r_2d_(plan_back,N,N,cc,bb,FFTW_ESTIMATE)
 call dfftw_execute_(plan_back)
 call dfftw_destroy_plan(plan_back)
 call dfftw_destroy_plan(plan_for)
@@ -504,21 +534,24 @@ bb=bb/real(N*N)
 
 RETURN
 END SUBROUTINE derivex
+
 !*****************************************************************
 SUBROUTINE derivey(aa,bb,kky,Nh,N)
 ! Computation of the y-derivative
 implicit none
+complex*16, parameter :: imag = (0.0d0,1.0d0)
 double precision aa(N,N), bb(N,N), kky(Nh)
 double complex :: cc(Nh,N)
 integer (kind=8) plan_for, plan_back
 integer Nh, N, jj
+include "fftw3.f"
 
-call dfftw_plan_dft_r2c_2d_(plan_for,N,N,aa,cc,64)
+call dfftw_plan_dft_r2c_2d_(plan_for,N,N,aa,cc,FFTW_ESTIMATE)
 call dfftw_execute_(plan_for)
 do jj = 1, Nh
-cc(jj,:) = cmplx(0,1)*cc(jj,:)*kky(jj)
+cc(jj,:) = imag*cc(jj,:)*kky(jj)
 end do
-call dfftw_plan_dft_c2r_2d_(plan_back,N,N,cc,bb,64)
+call dfftw_plan_dft_c2r_2d_(plan_back,N,N,cc,bb,FFTW_ESTIMATE)
 call dfftw_execute_(plan_back)
 call dfftw_destroy_plan(plan_back)
 call dfftw_destroy_plan(plan_for)
@@ -526,6 +559,7 @@ bb=bb/real(N*N)
 
 RETURN
 END SUBROUTINE derivey
+
 !*****************************************************************
 SUBROUTINE energy(rho,ux,uy,bx,by,uxdx,uydy,bxdx,bydy,EU,EB,Erho,Erho2,divu,divb,N)
 !***********compute energies
@@ -534,6 +568,7 @@ double precision EU, EB, Erho, Erho2, divu, divb
 double precision rho(N,N), ux(N,N), uy(N,N), bx(N,N), by(N,N)
 double precision uxdx(N,N), uydy(N,N), bxdx(N,N), bydy(N,N)
 integer N, iia, iib
+include "fftw3.f"
 
 EU = 0.
 EB = 0.
@@ -560,12 +595,14 @@ divb = divb/real(N*N)
 
 RETURN
 END SUBROUTINE energy
+
 !*****************************************************************
 SUBROUTINE energyF(ux,uy,EU,N)
 !***********compute energy
 implicit none
 double precision EU, ux(N,N), uy(N,N)
 integer N, ii, jj
+include "fftw3.f"
 
 EU = 0.
 do ii = 1, N
@@ -577,6 +614,7 @@ EU = EU/real(N*N)
 
 RETURN
 END SUBROUTINE energyF
+
 !*****************************************************************
 SUBROUTINE spectrum(ux,uy,Ek,Na,Nh,N)
 !***********compute the 2D spectrum
@@ -585,10 +623,11 @@ double precision ux(N,N), uy(N,N), Ek(Nh,N)
 double complex :: ukx(Nh,N), uky(Nh,N), Ek1(Nh,N)
 integer (kind=8) plan_for, plan_back
 integer Nh, N, Na, iia, iib
+include "fftw3.f"
 
-call dfftw_plan_dft_r2c_2d_(plan_for,N,N,ux,ukx,64)
+call dfftw_plan_dft_r2c_2d_(plan_for,N,N,ux,ukx,FFTW_ESTIMATE)
 call dfftw_execute_(plan_for)
-call dfftw_plan_dft_r2c_2d_(plan_for,N,N,uy,uky,64)
+call dfftw_plan_dft_r2c_2d_(plan_for,N,N,uy,uky,FFTW_ESTIMATE)
 call dfftw_execute_(plan_for)
 Ek1 = abs(ukx)**2 + abs(uky)**2
 do iia = 1, Nh
@@ -600,6 +639,7 @@ call dfftw_destroy_plan(plan_for)
 
 RETURN
 END SUBROUTINE spectrum
+
 !*****************************************************************
 SUBROUTINE spectrumrho(rho,Ek,Na,Nh,N)
 !***********compute the 2D spectrum
@@ -608,8 +648,9 @@ double precision rho(N,N), Ek(Nh,N)
 double complex :: rhok(Nh,N), Ek1(Nh,N)
 integer (kind=8) plan_for, plan_back
 integer Nh, N, Na, iia, iib
+include "fftw3.f"
 
-call dfftw_plan_dft_r2c_2d_(plan_for,N,N,rho,rhok,64)
+call dfftw_plan_dft_r2c_2d_(plan_for,N,N,rho,rhok,FFTW_ESTIMATE)
 call dfftw_execute_(plan_for)
 Ek1 = abs(rhok)**2
 do iia = 1, Nh
@@ -621,6 +662,7 @@ call dfftw_destroy_plan(plan_for)
 
 RETURN
 END SUBROUTINE spectrumrho
+
 !*****************************************************************
 !     Adaptive timestep
 !*****************************************************************
@@ -628,6 +670,7 @@ SUBROUTINE adaptiveT(a,b,ta,N)
 implicit none
 double precision a(N,N), b(N,N), ta, max1, max2, max3, max4, max
 integer N, ii, jj
+include "fftw3.f"
 
 max1 = dabs(a(1,1))
 do ii = 1, N

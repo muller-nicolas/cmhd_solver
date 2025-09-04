@@ -1,0 +1,8 @@
+out*
+test*
+fort*
+*.o
+restart*
+*.png
+
+

@@ -1,7 +1,7 @@
 !***********************************************************
 Program RadialSpectrum
 implicit none
-integer, parameter :: N = 128
+integer, parameter :: N = 256
 integer, parameter :: Nh = N/2+1
 integer, parameter :: Na = N/3  ! partie entière
 double precision spec1d(Nh), spec2d(Nh,N), deltaT, kinj
@@ -15,7 +15,7 @@ read(30,*) deltaT, ndeltaT, inrj, kinj, ispec
 close(30)
 
 Nmax = int(ndeltaT/ispec)
-istore = 100
+istore = 110
 
 do ii = 1, Nmax
 write(anim2D(19:21),'(i3)') istore

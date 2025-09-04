@@ -4,11 +4,18 @@ from pylab import *
 
 figure(figsize=(15,8))
 
-S1 = np.loadtxt('out_spectrumEB-2D-100')
-S2 = np.loadtxt('out_spectrumEB-2D-106')
-S3 = np.loadtxt('out_spectrumEB-2D-107')
-S4 = np.loadtxt('out_spectrumEB-2D-108')
-S5 = np.loadtxt('out_spectrumEB-2D-109')
+filenames = ['out_spectrumEB-1D-101',
+            #  'out_spectrumEB-1D-106', 
+            #  'out_spectrumEB-1D-107',
+            #  'out_spectrumEB-1D-108',
+            #  'out_spectrumEB-1D-109'
+            ]
+
+ista = 100
+iend = 119
+iskip = 1
+filenames = [f'out_spectrumEB-1D-{i:03d}' for i in range(ista,iend+1,iskip)]
+
 P = np.loadtxt('out_parameter')
 N = int(P[5]/2+1)
 x = np.linspace(1, N, N)
@@ -23,25 +30,18 @@ def lissage(S,L):
     return res
 
 a=2
-
-R1=lissage(S1,a)
-R2=lissage(S2,a)
-R3=lissage(S3,a)
-R4=lissage(S4,a)
-R5=lissage(S5,a)
-
 xp = 0
+
+for i,filename in enumerate(filenames):
+    S = np.loadtxt(filename)
+    R=lissage(S,a)
+    plt.loglog(x,R*np.pi*x*x**(xp)/(N*N*N*N),label=f't{i+1}')
 
 plt.xlabel('$k$')
 plt.ylabel('$E_b(k)$')
 plt.grid(True,linestyle=':',which="both")
 plt.xlim(1.,N)
 plt.ylim(1.e-30,1.e-2)
-plt.loglog(x,R1*np.pi*x*x**(xp)/(N*N*N*N),label='t1')
-plt.loglog(x,R2*np.pi*x*x**(xp)/(N*N*N*N),label='t2')
-plt.loglog(x,R3*np.pi*x*x**(xp)/(N*N*N*N),label='t3')
-plt.loglog(x,R4*np.pi*x*x**(xp)/(N*N*N*N),label='t4')
-plt.loglog(x,R5*np.pi*x*x**(xp)/(N*N*N*N),label='t5')
 #ks = np.array([2.5e0,1.5e1])
 #plt.loglog(ks, ks ** (-6.) * 1e5, 'k',linewidth=3.)
 #kl = np.array([1.e0,1.e1])
