@@ -28,11 +28,11 @@ end do
 close(30)
 spec1d = 0.
 countk = 0
-do i = 1, Nh
+do i = 1, N
 do j = 1, Nh
 k = ceiling(sqrt(real((i-1)*(i-1)+(j-1)*(j-1)))-0.5)
 if (k .le. Na+1) then
-spec1d(k) = spec2d(i,j) + spec1d(k)
+spec1d(k) = spec2d(j,i) + spec1d(k)
 countk(k) = countk(k) + 1
 end if
 end do

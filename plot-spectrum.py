@@ -12,7 +12,7 @@ filenames = ['out_spectrumEU-1D-101',
             ]
 
 ista = 100
-iend = 101
+iend = 109
 iskip = 1
 filenames = [f'out_spectrumEU-1D-{i:03d}' for i in range(ista,iend+1,iskip)]
 P = np.loadtxt('out_parameter')

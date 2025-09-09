@@ -15,8 +15,8 @@ integer, intent(in) :: N, Nh
 double precision, intent(in) :: aa_in(N,N)
 complex*16, intent(in) :: bb_in(Nh,N)
 
-call dfftw_plan_dft_r2c_2d_(plan_for, N, N, aa_in, bb_in, FFTW_ESTIMATE)
-call dfftw_plan_dft_c2r_2d_(plan_back, N, N, bb_in, aa_in, FFTW_ESTIMATE)
+call dfftw_plan_dft_r2c_2d_(plan_for, N, N, aa_in, bb_in, FFTW_MEASURE)
+call dfftw_plan_dft_c2r_2d_(plan_back, N, N, bb_in, aa_in, FFTW_MEASURE)
 
 RETURN
 END SUBROUTINE init_fftw

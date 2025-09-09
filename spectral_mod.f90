@@ -4,33 +4,52 @@ use, intrinsic :: iso_c_binding
 use fftw_mod
 implicit none
 
+double precision, allocatable, dimension(:,:) :: kill, kd
+double precision, allocatable, dimension(:) :: kx, ky
+save
 contains
 
-SUBROUTINE Initk(kkx,kky,kkkd,ddk,Nh,N)
+SUBROUTINE Initk(ddk,Nh,N)
 ! Initialization of the wavenumbers
-double precision kkx(N), kky(Nh), kkkd(Nh,N), ddk
-integer Nh, N, ii
+double precision ddk, ks
+integer Nh, N, ii, jj, kmax
 
-kky=(/(dfloat(ii-1)*ddk,ii=1,Nh,1)/)
-kkx(1:N/2)=(/(dfloat(ii-1)*ddk,ii=1,N/2,1)/)
-kkx(N/2+1:N)=(/(dfloat(ii-1-N)*ddk,ii=N/2+1,N,1)/)
+allocate(kill(Nh,N))
+allocate(kx(N))
+allocate(ky(Nh))
+allocate(kd(Nh,N))
+
+ky=(/(dfloat(ii-1)*ddk,ii=1,Nh,1)/)
+kx(1:N/2)=(/(dfloat(ii-1)*ddk,ii=1,N/2,1)/)
+kx(N/2+1:N)=(/(dfloat(ii-1-N)*ddk,ii=N/2+1,N,1)/)
 do ii = 1, N
-kkkd(:,ii) = kkx(ii)*kkx(ii) + kky(:)*kky(:)
+kd(:,ii) = kx(ii)*kx(ii) + ky(:)*ky(:)
+end do
+
+kmax = int(N/3)
+kill = 1.
+do ii=1,N
+    do jj=1,Nh
+        ks = sqrt(kd(jj,ii))
+        if (ks .gt. kmax) then
+            kill(ii,jj) = 0.
+        end if
+    end do
 end do
 
 RETURN
 END SUBROUTINE Initk
 
-SUBROUTINE derivex(aa,bb,kkx,Nh,N)
+SUBROUTINE derivex(aa,bb,Nh,N)
 ! Computation of the x-derivative
 complex*16, parameter :: imag = (0.0d0,1.0d0)
-double precision aa(N,N), bb(N,N), kkx(N)
+double precision aa(N,N), bb(N,N)
 double complex :: ctmp(Nh,N)
 integer Nh, N, ii
 
 call dfftw_execute_dft_r2c(plan_for,aa,ctmp)
 do ii = 1, N
-ctmp(:,ii) = imag*ctmp(:,ii)*kkx(ii)
+ctmp(:,ii) = imag*ctmp(:,ii)*kx(ii)
 end do
 call dfftw_execute_dft_c2r(plan_back,ctmp,bb)
 bb=bb/real(N*N)
@@ -39,16 +58,16 @@ RETURN
 END SUBROUTINE derivex
 
 !*****************************************************************
-SUBROUTINE derivey(aa,bb,kky,Nh,N)
+SUBROUTINE derivey(aa,bb,Nh,N)
 ! Computation of the y-derivative
 complex*16, parameter :: imag = (0.0d0,1.0d0)
-double precision aa(N,N), bb(N,N), kky(Nh)
+double precision aa(N,N), bb(N,N)
 double complex :: ctmp(Nh,N)
 integer Nh, N, jj
 
 call dfftw_execute_dft_r2c(plan_for,aa,ctmp)
 do jj = 1, Nh
-ctmp(jj,:) = imag*ctmp(jj,:)*kky(jj)
+ctmp(jj,:) = imag*ctmp(jj,:)*ky(jj)
 end do
 call dfftw_execute_dft_c2r(plan_back,ctmp,bb)
 bb=bb/real(N*N)

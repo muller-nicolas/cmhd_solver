@@ -6,7 +6,7 @@ import sys
 path = "./"
 name = 'divb' # 'rho' or 'jz' or 'wz' or 'divu' or 'divb'
 ista = 100
-iend = 119
+iend = 109
 iskip = 1
 N = 256
 

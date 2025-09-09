@@ -2,10 +2,10 @@ import matplotlib.pyplot as plt
 import numpy as np
 from pylab import *
 
-fig, ax = subplots(1,3,figsize=(15,6), sharex=True, sharey=True, tight_layout=True)
+fig, ax = subplots(1,3,figsize=(15,5), sharex=True, sharey=True, tight_layout=True)
 
 ista = 100
-iend = 119
+iend = 109
 iskip = 2
 filenames_EU = [f'out_spectrumEU-1D-{i:03d}' for i in range(ista,iend+1,iskip)]
 filenames_EB = [f'out_spectrumEB-1D-{i:03d}' for i in range(ista,iend+1,iskip)]
@@ -27,6 +27,9 @@ def lissage(S,L):
 a=2
 xp = 0
 
+nfiles = (iend - ista + 1) // iskip
+colors = [ plt.cm.viridis(i/nfiles) for i in range(nfiles) ]
+
 norm = np.pi*x*x**(xp)/(N*N*N*N)
 for i in range(len(filenames_EU)):
     filename_u = filenames_EU[i]
@@ -41,9 +44,9 @@ for i in range(len(filenames_EU)):
     Rb=lissage(Sb,a)*norm
     Rr=lissage(Sr,a)*norm
 
-    ax[0].loglog(x,Ru,label=f't{i+1}')
-    ax[1].loglog(x,Rb,label=f't{i+1}')
-    ax[2].loglog(x,Rr,label=f't{i+1}')
+    ax[0].loglog(x,Ru,label=f't{i+1}', color=colors[i])
+    ax[1].loglog(x,Rb,label=f't{i+1}', color=colors[i])
+    ax[2].loglog(x,Rr,label=f't{i+1}', color=colors[i])
 
 ax[0].set_xlabel(r'$k$')
 ax[1].set_xlabel(r'$k$')

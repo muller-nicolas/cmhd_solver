@@ -17,6 +17,7 @@ close(30)
 Nmax = int(ndeltaT/ispec)
 istore = 100
 
+! TODO: loops in spec are wrong, but it works...
 do ii = 1, Nmax
 write(anim2D(19:21),'(i3)') istore
 open(30, file = anim2D, status = 'old',form='formatted')
@@ -28,11 +29,11 @@ end do
 close(30)
 spec1d = 0.
 countk = 0
-do i = 1, Nh
+do i = 1, N
 do j = 1, Nh
 k = ceiling(sqrt(real((i-1)*(i-1)+(j-1)*(j-1)))-0.5)
 if (k .le. Nh) then
-spec1d(k) = spec2d(i,j) + spec1d(k)
+spec1d(k) = spec2d(j,i) + spec1d(k)
 countk(k) = countk(k) + 1
 end if
 end do
