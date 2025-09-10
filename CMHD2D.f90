@@ -29,10 +29,10 @@ double precision :: rho0(N,N), ux0(N,N), uy0(N,N), bx0(N,N), by0(N,N)
 double precision :: rho1(N,N), ux1(N,N), uy1(N,N), bx1(N,N), by1(N,N)
 double precision :: uxdx(N,N), uxdy(N,N), uydx(N,N), uydy(N,N)
 double precision :: bxdy(N,N), bydx(N,N), bxdx(N,N), bydy(N,N)
-double precision :: nonlinrho0(N,N), nonlinux0(N,N), nonlinuy0(N,N), nonlinbx0(N,N), nonlinby0(N,N)
-double precision :: nonlinrho1(N,N), nonlinux1(N,N), nonlinuy1(N,N), nonlinbx1(N,N), nonlinby1(N,N)
+! double precision :: nonlinrho0(N,N), nonlinux0(N,N), nonlinuy0(N,N), nonlinbx0(N,N), nonlinby0(N,N)
+! double precision :: nonlinrho1(N,N), nonlinux1(N,N), nonlinuy1(N,N), nonlinbx1(N,N), nonlinby1(N,N)
 
-double precision EU, EB, Erho, Erho2 
+double precision EU, EB, Erho, Erho2
 
 double complex :: ukx0(Nh,N), uky0(Nh,N), bkx0(Nh,N), bky0(Nh,N), rhok0(Nh,N)
 double complex :: ukx1(Nh,N), uky1(Nh,N), bkx1(Nh,N), bky1(Nh,N), rhok1(Nh,N)
@@ -59,6 +59,8 @@ call cpu_time(time=t1)
 
 !**************Initialization
 
+deltaT = deltaT0
+nu = nu0
 time = 0.d0
 timests = 0.d0
 
@@ -97,20 +99,11 @@ end if
 !****************** In case of restart the code starts below *************
 if (nrestart .eq. 0) then
 open(66, file = 'restart', status = 'old',form='unformatted')
-read(66) rho1(:,:),ux1(:,:),uy1(:,:),bx1(:,:),by1(:,:),rho0(:,:),ux0(:,:),uy0(:,:),bx0(:,:),by0(:,:)
-read(66) nonlinrho0(:,:),nonlinux0(:,:),nonlinuy0(:,:),nonlinbx0(:,:),nonlinby0(:,:)
-read(66) nonlinrho1(:,:),nonlinux1(:,:),nonlinuy1(:,:),nonlinbx1(:,:),nonlinby1(:,:)
+read(66) rhok1(:,:),ukx1(:,:),uky1(:,:),bkx1(:,:),bky1(:,:)
+read(66) rhok0(:,:),ukx0(:,:),uky0(:,:),bkx0(:,:),bky0(:,:)
+read(66) nonlinrhok0(:,:),nonlinukx0(:,:),nonlinuky0(:,:),nonlinbkx0(:,:),nonlinbky0(:,:)
+read(66) nonlinrhok1(:,:),nonlinukx1(:,:),nonlinuky1(:,:),nonlinbkx1(:,:),nonlinbky1(:,:)
 close(66)
-call FFT_PS(rho1,rhok1)
-call FFT_PS(ux1,ukx1)
-call FFT_PS(uy1,uky1)
-call FFT_PS(bx1,bkx1)
-call FFT_PS(by1,bky1)
-call FFT_PS(nonlinrho0,nonlinrhok0)
-call FFT_PS(nonlinuy0,nonlinuky0)
-call FFT_PS(nonlinuy0,nonlinuky0)
-call FFT_PS(nonlinbx0,nonlinbkx0)
-call FFT_PS(nonlinby0,nonlinbky0)
 end if
 
 !************************************************************************
@@ -167,9 +160,9 @@ write(44,*) divb
 write(45,*) Erho2
 
 !****************Adaptive timestep
-write(53,*) nu
-time = time + dfloat(inrj)*deltaT
-write(52,*) time
+! write(53,*) nu
+! time = time + dfloat(inrj)*deltaT
+! write(52,*) time
 ! call adaptiveT(ukx2,rhok2,ta)
 ! write(51,*) ta
 ! deltaT = ta*0.2d0 ! condition CFL
@@ -271,33 +264,13 @@ end if
 end do ! end of the temporal loop
 
 
-! Save fields in real space for restart (maybe should I do it in spectral space?)
-call FFT_SP(rhok1,rho1)
-call FFT_SP(ukx1,ux1)
-call FFT_SP(uky1,uy1)
-call FFT_SP(bkx1,bx1)
-call FFT_SP(bky1,by1)
-call FFT_SP(rhok0,rho0)
-call FFT_SP(ukx0,ux0)
-call FFT_SP(uky0,uy0)
-call FFT_SP(bkx0,bx0)
-call FFT_SP(bky0,by0)
-call FFT_SP(nonlinrhok0,nonlinrho0)
-call FFT_SP(nonlinukx0,nonlinux0)
-call FFT_SP(nonlinuky0,nonlinuy0)
-call FFT_SP(nonlinbkx0,nonlinbx0)
-call FFT_SP(nonlinbky0,nonlinby0)
-call FFT_SP(nonlinrhok1,nonlinrho1)
-call FFT_SP(nonlinukx1,nonlinux1)
-call FFT_SP(nonlinuky1,nonlinuy1)
-call FFT_SP(nonlinbkx1,nonlinbx1)
-call FFT_SP(nonlinbky1,nonlinby1)
-
+! Save fields in spectral space for restart
 write(animR(9:11),'(i3)') istore_fields
 open(30, file = animR, status = 'new',form='unformatted')
-write(30) rho1(:,:),ux1(:,:),uy1(:,:),bx1(:,:),by1(:,:),rho0(:,:),ux0(:,:),uy0(:,:),bx0(:,:),by0(:,:)
-write(30) nonlinrho0(:,:),nonlinux0(:,:),nonlinuy0(:,:),nonlinbx0(:,:),nonlinby0(:,:)
-write(30) nonlinrho1(:,:),nonlinux1(:,:),nonlinuy1(:,:),nonlinbx1(:,:),nonlinby1(:,:)
+write(30) rhok1(:,:),ukx1(:,:),uky1(:,:),bkx1(:,:),bky1(:,:)
+write(30) rhok0(:,:),ukx0(:,:),uky0(:,:),bkx0(:,:),bky0(:,:)
+write(30) nonlinrhok0(:,:),nonlinukx0(:,:),nonlinuky0(:,:),nonlinbkx0(:,:),nonlinbky0(:,:)
+write(30) nonlinrhok1(:,:),nonlinukx1(:,:),nonlinuky1(:,:),nonlinbkx1(:,:),nonlinbky1(:,:)
 close(30)
 
 call end_fftw ! Deallocate plans
@@ -360,9 +333,9 @@ SUBROUTINE RandomF(field1)
 use parameters
 use fftw_mod
 implicit none
-double precision spectri(Na+1,Na+1), field1(N,N)
+double precision spectri(Na+1,Na+1)
 double precision theta, knc
-double complex :: spectric1(Nh,N)
+double complex :: spectric1(Nh,N), field1(Nh,N)
 integer ii, jj
 
 call srand(seed)
@@ -377,11 +350,10 @@ end do
 do ii = 1, Na+1
 do jj = 1, Na+1
 theta = rand()*2.*pi
-spectric1(jj,ii) = spectri(jj,ii)*cmplx(cos(theta),sin(theta))
+spectric1(jj,ii) = spectri(jj,ii)*(cos(theta) + imag*sin(theta))
 end do
 end do
-! call dfftw_execute_dft_c2r(plan_back,spectric1,field1)
-call FFT_SP(spectric1,field1)
+! call FFT_SP(spectric1,field1)
 
 RETURN
 END SUBROUTINE RandomF
@@ -477,47 +449,7 @@ EU = EU/real(N*N)
 RETURN
 END SUBROUTINE energyF
 
-!*****************************************************************
-!     Adaptive timestep
-!*****************************************************************
-! SUBROUTINE adaptiveT(a,b,ta)
-! use parameters
-! implicit none
-! double precision a(N,N), b(N,N), ta, max1, max2, max3, max4, max
-! integer ii, jj
-! include "fftw3.f"
 
-! max1 = dabs(a(1,1))
-! do ii = 1, N
-! do jj = 1, N
-! max2 = dabs(a(jj,ii))
-! if (max2 .gt. max1) then
-! max1=max2
-! end if
-! end do
-! end do
-
-! max3 = dabs(b(1,1))
-! do ii = 1, N
-! do jj = 1, N
-! max4 = dabs(b(jj,ii))
-! if (max4 .gt. max3) then
-! max3=max4
-! end if
-! end do
-! end do
-
-! max=max1
-! if (max3 .gt. max1) then
-! max=max3
-! end if
-! if (max .lt. 2.d0) then
-! max=1.d0
-! end if
-! ta=1.d0/(N*max)
-
-! RETURN
-! END SUBROUTINE adaptiveT
 !*****************************************************************
 
 

@@ -2,6 +2,7 @@ out*
 test*
 fort*
 *.o
+*.mod
 restart*
 *.png
 run*/

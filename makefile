@@ -6,6 +6,9 @@ LDFLAGS = -L/usr/local/Cellar/fftw/3.3.10_1/lib -I/usr/local/Cellar/fftw/3.3.10_
 LIBS = -lfftw3 # -lfftw3_threads
 PYTHON = /usr/local/opt/python@3.9/bin/python3.9
 
+# Adastra
+# LDFLAGS = -L/opt/cray/pe/fftw/3.3.10.6/x86_genoa/lib -I/opt/cray/pe/fftw/3.3.10.6/x86_genoa/include
+
 # Targets
 all: run_cmhd run_spectrum1 run_spectrum2 run_spectrum3
 
@@ -14,10 +17,12 @@ clean:
 
 spectra: run_spectrum1 run_spectrum2 run_spectrum3
 
-SRC = parameters.f90 FFTW_mod.f90 spectral_mod.f90 cMHD_mod.f90 CMHD2D-v8.f90
+compile_all: CMHD2D spectrum-anim spectrum-anim2 spectrum-anim3
 
-# Build and run CMHD2D-v8
-CMHD2D-v8: $(SRC)
+SRC = parameters.f90 FFTW_mod.f90 adaptive_mod.f90 spectral_mod.f90 cMHD_mod.f90 CMHD2D-v8.f90
+
+# Build and run CMHD2D
+CMHD2D: $(SRC)
 	$(FC) $(FFLAGS) $(LDFLAGS) $(LIBS) $(SRC) -o CMHD2D-v8 
 
 run_cmhd: CMHD2D-v8

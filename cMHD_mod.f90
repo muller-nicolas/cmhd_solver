@@ -3,6 +3,7 @@ MODULE cMHD_mod
 use, intrinsic :: iso_c_binding
 use parameters
 use fftw_mod
+use adaptive_mod
 use spectral_mod
 implicit none
 
