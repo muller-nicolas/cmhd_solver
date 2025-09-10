@@ -1,21 +1,19 @@
 !***********************************************************
 Program RadialSpectrum
+use parameters
 implicit none
-integer, parameter :: N = 256
-integer, parameter :: Nh = N/2+1
-integer, parameter :: Na = N/3  ! partie entière
-double precision spec1d(Nh), spec2d(Nh,N), deltaT, kinj
-integer i, j, k, countk(Nh), Nmax, istore, ii
-integer ndeltaT, inrj, ispec
+double precision spec1d(Nh), spec2d(Nh,N)
+integer i, j, k, countk(Nh), Nmax, ii, istore
 character (len=21) :: anim2D='out_spectrumEU-2D-'
 character (len=21) :: anim1D='out_spectrumEU-1D-'
 
-open(30, file = 'out_parameter', status = 'old',form='formatted')
-read(30,*) deltaT, ndeltaT, inrj, kinj, ispec
-close(30)
+! print *,istore_sp
+! open(30, file = 'out_parameter', status = 'old',form='formatted')
+! read(30,*) deltaT, ndeltaT, inrj, kinj, ispec, ifields
+! close(30)
 
-Nmax = int(ndeltaT/ispec)
 istore = 100
+Nmax = int(ndeltaT/ispec)
 
 ! TODO: loops in spec are wrong, but it works...
 do ii = 1, Nmax

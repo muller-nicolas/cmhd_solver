@@ -3,56 +3,44 @@
 !  Sébastien Galtier - LPP - Version 8 (July 2025)
 !*********************************************************************
 
-! TODO: Dealisaing?
-! TODO: Reduce number of fields
-! TODO: Pointers for fields in memory (real to spectral)
-! TODO: Write mostly in spectral space
-! TODO: Save fields as binary files
-! TODO: include spectrum-anim in the code
-! TODO: handle precision globally
+! TODO: Reduce number of fields (better scalability)
+! TODO: Pointers for fields in memory (Reduce memory usage)
+! TODO: Save fields as binary files (Reduce memory stockage)
+! TODO: include spectrum-anim in the code (for practical purposes)
+! TODO: handle precision globally (for practical purposes)
 ! TODO: Parallelisation: MPI, openMP or GPU
-! TODO: RK4
+! TODO: RK4 (Numerical precision)
 
 Program CMHD
 
 use, intrinsic :: iso_c_binding
+use parameters
 use fftw_mod
 use spectral_mod
+use cMHD_mod
 
 implicit none
-integer, parameter :: N = 256
-integer, parameter :: Nh = N/2+1
-integer, parameter :: Na = N/3  ! partie entière
-double precision pi, dk, deltaT, deltaTi, nu, eta, Ek(Nh,N)
-double precision kinj, t1, t2
-double precision divu, divb, ta, time, disp, norm
-double precision rho0(N,N), ux0(N,N), uy0(N,N), bx0(N,N), by0(N,N)
-double precision rho1(N,N), ux1(N,N), uy1(N,N), bx1(N,N), by1(N,N)
-double precision rho2(N,N), ux2(N,N), uy2(N,N), bx2(N,N), by2(N,N)
 
-double precision uxdx(N,N), uxdy(N,N), uydx(N,N), uydy(N,N)
-double precision bxdy(N,N), bydx(N,N), bxdx(N,N), bydy(N,N)
+double precision Ek(Nh,N)
+double precision t1, t2
+double precision divu, divb, ta, norm, time, timests
 
-double precision nonlinbx(N,N), nonlinby(N,N), nonlinbydx(N,N), nonlinbxdy(N,N)
+double precision :: rho0(N,N), ux0(N,N), uy0(N,N), bx0(N,N), by0(N,N)
+double precision :: rho1(N,N), ux1(N,N), uy1(N,N), bx1(N,N), by1(N,N)
+double precision :: uxdx(N,N), uxdy(N,N), uydx(N,N), uydy(N,N)
+double precision :: bxdy(N,N), bydx(N,N), bxdx(N,N), bydy(N,N)
+double precision :: nonlinrho0(N,N), nonlinux0(N,N), nonlinuy0(N,N), nonlinbx0(N,N), nonlinby0(N,N)
+double precision :: nonlinrho1(N,N), nonlinux1(N,N), nonlinuy1(N,N), nonlinbx1(N,N), nonlinby1(N,N)
 
-! double precision nonlinuxa(N,N), nonlinuxadx(N,N), nonlinuxb(N,N)
-! double precision nonlinuxbdy(N,N), nonlinuy(N,N), nonlinuydx(N,N), nonlinuxbdx(N,N)
-double precision nonlinrho0(N,N), nonlinux0(N,N), nonlinuy0(N,N)
-double precision nonlinbx0(N,N), nonlinby0(N,N)
-double precision rhoux(N,N), rhouy(N,N), rhouxdx(N,N), rhouydy(N,N)
-double precision nonlinrho1(N,N), nonlinux1(N,N), nonlinuy1(N,N)
-double precision nonlinbx1(N,N), nonlinby1(N,N) 
-double precision EU, EB, Erho, Erho2, a, amp, off
+double precision EU, EB, Erho, Erho2 
 
-! Spectral fields TODO: Pointers
-double complex :: ukx2(Nh,N), uky2(Nh,N), bkx2(Nh,N), bky2(Nh,N), rhok(Nh,N)
+double complex :: ukx0(Nh,N), uky0(Nh,N), bkx0(Nh,N), bky0(Nh,N), rhok0(Nh,N)
+double complex :: ukx1(Nh,N), uky1(Nh,N), bkx1(Nh,N), bky1(Nh,N), rhok1(Nh,N)
+double complex :: ukx2(Nh,N), uky2(Nh,N), bkx2(Nh,N), bky2(Nh,N), rhok2(Nh,N)
+double complex :: nonlinrhok0(Nh,N), nonlinukx0(Nh,N), nonlinuky0(Nh,N), nonlinbkx0(Nh,N), nonlinbky0(Nh,N)
+double complex :: nonlinrhok1(Nh,N), nonlinukx1(Nh,N), nonlinuky1(Nh,N), nonlinbkx1(Nh,N), nonlinbky1(Nh,N)
 
-! TOTAL NUMBER OF FIELDS: 
-! fields0 = 5
-! fields1 = 5
-! fields2 = 5
-
-integer i, j, ndeltaT, inrj, ispec, it, istore, nrestart !, irestart
+integer i, j, it 
 character (len=11) :: animR='restart-'
 character (len=21) :: animE='out_spectrumEU-2D-'
 character (len=21) :: animB='out_spectrumEB-2D-'
@@ -70,35 +58,18 @@ character (len=15) :: animdivu='out_divu-2D-'
 call cpu_time(time=t1)
 
 !**************Initialization
-istore = 100
-pi = 3.141592653589793238d0
-deltaT = 1.d-4
-deltaTi = deltaT/10.d0
-ndeltaT = 1000
-inrj = 1
-ispec = 100  !*********must be a multiple of inrj
-! irestart = 1000
-kinj = 3.
-dk = 2.*pi
-! nu = 1.d-6
-nu = 6.d-8
-eta = nu
-disp = 0.d-5  ! without dispersion => 0.d0
-a = 1.d0  !*********a=0. => linear equations; a=1. non-linear equations
-amp = 1.d-2
-off = 0.d0   !*********forcing => off = 1.d0
-time = 0.d0
-nrestart = 1    !*********for a restart => nrestart = 0
 
-call init_fftw(ux0, ukx2, N, Nh)
-! call Initk(kx,ky,kd,dk,Nh,N)
-call Initk(dk,Nh,N)
+time = 0.d0
+timests = 0.d0
+
+call init_fftw
+call Initk
 
 !***************** In case of no restart the code starts down here
 if (nrestart .ne. 0) then
 
 open(30, file='out_parameter', status='new', form='formatted')
-write(30,*) deltaT, ndeltaT, inrj, kinj, ispec, N, dk
+write(30,*) deltaT, ndeltaT, inrj, kinj, ispec, ifields, N, dk
 close(30)
 
 open(40, file = 'out_EU', status = 'new',form='formatted')
@@ -111,50 +82,16 @@ open(51, file = 'out_deltaT', status = 'new',form='formatted')
 open(52, file = 'out_time', status = 'new',form='formatted')
 open(53, file = 'out_nu', status = 'new',form='formatted')
 
-call RandomInit(ux0,uy0,kinj,pi,Na,Nh,N)
-call energyF(ux0,uy0,EU,N)
-ux0=amp*ux0/sqrt(EU)
-uy0=amp*uy0/sqrt(EU)
+! Initilize velocity field
+call RandomInit(ukx0,uky0)
 
+call RHS(rhok0,ukx0,uky0,bkx0,bky0,nonlinrhok0,nonlinukx0,nonlinuky0,nonlinbkx0,nonlinbky0)
 
-print *,kill(2,2)
-call derivex(ux0,uxdx,Nh,N)
-call derivex(uy0,uydx,Nh,N)
-call derivex(by0,bydx,Nh,N)
-
-call derivey(ux0,uxdy,Nh,N)
-call derivey(uy0,uydy,Nh,N)
-call derivey(bx0,bxdy,Nh,N)
-
-rhoux = rho0*ux0
-rhouy = rho0*uy0
-call derivex(rhoux,rhouxdx,Nh,N)
-call derivey(rhouy,rhouydy,Nh,N)
-nonlinbx = ux0*by0-bx0*uy0
-call derivey(nonlinbx,nonlinbxdy,Nh,N)
-nonlinby = -nonlinbx
-call derivex(nonlinby,nonlinbydx,Nh,N)
-
-! NL terms for Velocity equation
-! nonlinuxa = (bx0*bx0-by0*by0-ux0*ux0)/2.
-! call derivex(nonlinuxa,nonlinuxadx,kx,Nh,N)
-! nonlinuxb = bx0*by0
-! call derivey(nonlinuxb,nonlinuxbdy,ky,Nh,N)
-! nonlinuy = -(uy0*uy0+bx0*bx0-by0*by0)/2.
-! call derivey(nonlinuy,nonlinuydx,ky,Nh,N)
-! call derivex(nonlinuxb,nonlinuxbdx,kx,Nh,N)
-
-nonlinrho0 = -uxdx-uydy - a*(rhouxdx+rhouydy)
-! nonlinux0 = a*(nonlinuxadx + nonlinuxbdy - uy0*uxdy0)
-! nonlinuy0 = bydx0 - bxdy0 + a*(nonlinuydx+nonlinuxbdx-rho0*(bydx0-bxdy0))
-nonlinux0 = a*(-ux0*uxdx -uy0*uxdy - by0*bydx + by0*bxdy)
-nonlinuy0 = bydx - bxdy + a*(-ux0*uydx - uy0*uydy - bx0*bxdy + bx0*bydx - rho0*(bydx-bxdy))
-nonlinbx0 = -uydy + a*nonlinbxdy
-nonlinby0 = uydx + a*nonlinbydx
-ux1 = ux0 + deltaTi*nonlinux0
-uy1 = uy0 + deltaTi*nonlinuy0
-bx1 = bx0 + deltaTi*nonlinbx0
-by1 = by0 + deltaTi*nonlinby0
+rhok1 = rhok0 + deltaTi*nonlinrhok0
+ukx1 = ukx0 + deltaTi*nonlinukx0
+uky1 = uky0 + deltaTi*nonlinuky0
+bkx1 = bkx0 + deltaTi*nonlinbkx0
+bky1 = bky0 + deltaTi*nonlinbky0
 end if
 
 !****************** In case of restart the code starts below *************
@@ -164,6 +101,16 @@ read(66) rho1(:,:),ux1(:,:),uy1(:,:),bx1(:,:),by1(:,:),rho0(:,:),ux0(:,:),uy0(:,
 read(66) nonlinrho0(:,:),nonlinux0(:,:),nonlinuy0(:,:),nonlinbx0(:,:),nonlinby0(:,:)
 read(66) nonlinrho1(:,:),nonlinux1(:,:),nonlinuy1(:,:),nonlinbx1(:,:),nonlinby1(:,:)
 close(66)
+call FFT_PS(rho1,rhok1)
+call FFT_PS(ux1,ukx1)
+call FFT_PS(uy1,uky1)
+call FFT_PS(bx1,bkx1)
+call FFT_PS(by1,bky1)
+call FFT_PS(nonlinrho0,nonlinrhok0)
+call FFT_PS(nonlinuy0,nonlinuky0)
+call FFT_PS(nonlinuy0,nonlinuky0)
+call FFT_PS(nonlinbx0,nonlinbkx0)
+call FFT_PS(nonlinby0,nonlinbky0)
 end if
 
 !************************************************************************
@@ -172,135 +119,46 @@ end if
 do it = 1, ndeltaT
 
 ! Random forcing in ux0 and uy0
-call RandomF(ux0,kinj,pi,it,Na,Nh,N)
-call RandomF(uy0,kinj,pi,it,Na,Nh,N)
+! call RandomF(ux0,kinj,pi,it,Na,Nh,N)
+! call RandomF(uy0,kinj,pi,it,Na,Nh,N)
 
-! Normalization of the forcing
-call energyF(ux0,uy0,EU,N)
-ux0=amp*ux0/sqrt(EU)
-uy0=amp*uy0/sqrt(EU)
+! ! Normalization of the forcing
+! call energyF(ux0,uy0,EU)
+! ux0=amp*ux0/sqrt(EU)
+! uy0=amp*uy0/sqrt(EU)
 
-! d/dx
-call derivex(ux1,uxdx,Nh,N)
-call derivex(uy1,uydx,Nh,N)
-call derivex(by1,bydx,Nh,N)
-call derivex(bx1,bxdx,Nh,N)
-
-! d/dy
-call derivey(ux1,uxdy,Nh,N)
-call derivey(uy1,uydy,Nh,N)
-call derivey(bx1,bxdy,Nh,N)
-call derivey(by1,bydy,Nh,N)
-
-! Compute non-linear terms
-
-! NL terms for Density equation
-rhoux = rho1*ux1
-rhouy = rho1*uy1
-call derivex(rhoux,rhouxdx,Nh,N)
-call derivey(rhouy,rhouydy,Nh,N)
-
-! NL terms for Induction equation
-nonlinbx = ux1*by1-bx1*uy1
-call derivey(nonlinbx,nonlinbxdy,Nh,N)
-nonlinby = -nonlinbx
-call derivex(nonlinby,nonlinbydx,Nh,N)
-
-! NL terms for Velocity equation
-! nonlinuxa = (bx1*bx1-by1*by1-ux1*ux1)/2.
-! call derivex(nonlinuxa,nonlinuxadx,kx,Nh,N)
-! nonlinuxb = bx1*by1
-! call derivey(nonlinuxb,nonlinuxbdy,ky,Nh,N)
-! nonlinuy = -(uy1*uy1+bx1*bx1-by1*by1)/2.
-! call derivey(nonlinuy,nonlinuydx,ky,Nh,N)
-! call derivex(nonlinuxb,nonlinuxbdx,kx,Nh,N)
-
-! NL terms all together
-nonlinrho1 = -uxdx-uydy - a*(rhouxdx+rhouydy)
-! nonlinux1 = a*(nonlinuxadx + nonlinuxbdy - uy1*uxdy1)
-! nonlinuy1 = bydx1 - bxdy1 + a*(nonlinuydx+nonlinuxbdx-rho1*(bydx1-bxdy1))
-nonlinux1 = a*(-ux1*uxdx -uy1*uxdy - by1*bydx + by1*bxdy)
-nonlinuy1 = bydx - bxdy + a*(-ux1*uydx - uy1*uydy - bx1*bxdy + bx1*bydx - rho1*(bydx-bxdy))
-nonlinbx1 = -uydy + a*nonlinbxdy
-nonlinby1 = uydx + a*nonlinbydx
+call RHS(rhok1,ukx1,uky1,bkx1,bky1,nonlinrhok1,nonlinukx1,nonlinuky1,nonlinbkx1,nonlinbky1)
+call check_nan(rhok1)
 
 ! Adams-Bashford method
-rho2 = rho1 + deltaT*(1.5*nonlinrho1 - 0.5*nonlinrho0)
-ux2  = ux1  + deltaT*(1.5*nonlinux1  - 0.5*nonlinux0) + ux0*off
-uy2  = uy1  + deltaT*(1.5*nonlinuy1  - 0.5*nonlinuy0) + uy0*off
-bx2  = bx1  + deltaT*(1.5*nonlinbx1  - 0.5*nonlinbx0)
-by2  = by1  + deltaT*(1.5*nonlinby1  - 0.5*nonlinby0)
+rhok2 = rhok1 + deltaT*(1.5*nonlinrhok1 - 0.5*nonlinrhok0)
+ukx2  = ukx1  + deltaT*(1.5*nonlinukx1  - 0.5*nonlinukx0) + ukx0*off
+uky2  = uky1  + deltaT*(1.5*nonlinuky1  - 0.5*nonlinuky0) + uky0*off
+bkx2  = bkx1  + deltaT*(1.5*nonlinbkx1  - 0.5*nonlinbkx0)
+bky2  = bky1  + deltaT*(1.5*nonlinbky1  - 0.5*nonlinbky0)
 
-! Implicit method for dissipation term in rho
-! Hypoviscosity (bilaplacian) + dispersion
-norm = 1.d0/real(N*N)
-! TODO: Dissipation in rho?
-call dfftw_execute_dft_r2c(plan_for,rho2,rhok)
-do i = 1, N
-    do j = 1, Nh
-        rhok(j,i) = rhok(j,i)*exp(-(kd(j,i)*nu*kd(j,i)+cmplx(0,1)*disp*(kx(i)**3+ky(j)**3))*deltaT)
-    end do
-end do
-call dfftw_execute_dft_c2r(plan_back,rhok,rho2)
-rho2 = rho2*norm
-
-! Implicit method for dissipation term in ux
-call dfftw_execute_dft_r2c(plan_for,ux2,ukx2)
-do i = 1, N
-    do j = 1, Nh
-        ukx2(j,i) = ukx2(j,i)*exp(-(kd(j,i)*nu*kd(j,i)+cmplx(0,1)*disp*(kx(i)**3+ky(j)**3))*deltaT)
-    end do
-end do
-!ukx2(1,1)=0.d0
-call dfftw_execute_dft_c2r(plan_back,ukx2,ux2)
-ux2 = ux2*norm
-
-! Implicit method for dissipation term in uy
-call dfftw_execute_dft_r2c(plan_for,uy2,uky2)
-do i = 1, N
-    do j = 1, Nh
-        uky2(j,i) = uky2(j,i)*exp(-(kd(j,i)*nu*kd(j,i)+cmplx(0,1)*disp*(kx(i)**3+ky(j)**3))*deltaT)
-    end do
-end do
-!uky2(1,1)=0.d0
-call dfftw_execute_dft_c2r(plan_back,uky2,uy2)
-uy2 = uy2*norm
-
-! Implicit method for dissipation term in bx
-call dfftw_execute_dft_r2c(plan_for,bx2,bkx2)
-do i = 1, N
-    do j = 1, Nh
-        bkx2(j,i) = bkx2(j,i)*exp(-(kd(j,i)*eta*kd(j,i)+cmplx(0,1)*disp*(kx(i)**3+ky(j)**3))*deltaT)
-    end do
-end do
-call dfftw_execute_dft_c2r(plan_back,bkx2,bx2)
-bx2 = bx2*norm
-
-! Implicit method for dissipation term in by
-call dfftw_execute_dft_r2c(plan_for,by2,bky2)
-do i = 1, N
-    do j = 1, Nh
-        bky2(j,i) = bky2(j,i)*exp(-(kd(j,i)*eta*kd(j,i)+cmplx(0,1)*disp*(kx(i)**3+ky(j)**3))*deltaT)
-    end do
-end do
-call dfftw_execute_dft_c2r(plan_back,bky2,by2)
-by2 = by2*norm
+call dissipation(rhok2,ukx2,uky2,bkx2,bky2)
 
 ! Rename variables for saving and use them as initial values for next loop
-rho1=rho2
-ux1=ux2
-uy1=uy2
-bx1=bx2
-by1=by2
-nonlinrho0=nonlinrho1
-nonlinux0=nonlinux1
-nonlinuy0=nonlinuy1
-nonlinbx0=nonlinbx1
-nonlinby0=nonlinby1
+rhok1=rhok2
+ukx1=ukx2
+uky1=uky2
+bkx1=bkx2
+bky1=bky2
+nonlinrhok0=nonlinrhok1
+nonlinukx0=nonlinukx1
+nonlinuky0=nonlinuky1
+nonlinbkx0=nonlinbkx1
+nonlinbky0=nonlinbky1
 
 ! Compute and write energy
 if ( (mod(it,inrj) .eq. 0) ) then
-call energy(rho1,ux1,uy1,bx1,by1,uxdx,uydy,bxdx,bydy,EU,EB,Erho,Erho2,divu,divb,N)
+! call energy(rho1,ux1,uy1,bx1,by1,uxdx,uydy,bxdx,bydy,EU,EB,Erho,Erho2,divu,divb,N)
+call derivex(ukx1,ukxdx)
+call derivey(uky1,ukydy)
+call derivex(bkx1,bkxdx)
+call derivey(bky1,bkydy)
+call energy(rhok1,ukx1,uky1,bkx1,bky1,ukxdx,ukydy,bkxdx,bkydy,EU,EB,Erho,Erho2,divu,divb)
 write(40,*) EU
 write(41,*) EB
 write(42,*) Erho
@@ -312,19 +170,20 @@ write(45,*) Erho2
 write(53,*) nu
 time = time + dfloat(inrj)*deltaT
 write(52,*) time
-call adaptiveT(ux2,rho2,ta,N)
-write(51,*) ta
-deltaT = ta*0.2d0 ! condition CFL
-nu = 1./ta*(1.d0/N)**4 ! condition CFL
-eta = nu
+! call adaptiveT(ukx2,rhok2,ta)
+! write(51,*) ta
+! deltaT = ta*0.2d0 ! condition CFL
+! nu = 1./ta*(1.d0/N)**4 ! condition CFL
+! eta = nu
 
 end if
 
 ! Compute and write spectra
 if ( (mod(it,ispec) .eq. 0) ) then
 print *, it
-write(animE(19:21),'(i3)') istore
-call spectrum(ux2,uy2,Ek,Nh,N)
+! TODO: Write spectra properly -> fix anim_spec routines
+write(animE(19:21),'(i3)') istore_sp
+call spectrum(ukx2,uky2,Ek)
 open(30, file = animE, status = 'new',form='formatted')
 do i = 1, Nh
     do j = 1, N
@@ -332,8 +191,8 @@ do i = 1, Nh
     end do
 end do
 close(30)
-write(animB(19:21),'(i3)') istore
-call spectrum(bx2,by2,Ek,Nh,N)
+write(animB(19:21),'(i3)') istore_sp
+call spectrum(bkx2,bky2,Ek)
 open(30, file = animB, status = 'new',form='formatted')
 do i = 1, Nh
     do j = 1, N
@@ -341,8 +200,8 @@ do i = 1, Nh
     end do
 end do
 close(30)
-write(animrho(20:22),'(i3)') istore
-call spectrumrho(rho2,Ek,Nh,N)
+write(animrho(20:22),'(i3)') istore_sp
+call spectrumrho(rhok2,Ek)
 open(30, file = animrho, status = 'new',form='formatted')
 do i = 1, Nh
     do j = 1, N
@@ -350,58 +209,98 @@ do i = 1, Nh
     end do
 end do
 close(30)
-!
-write(animO(12:14),'(i3)') istore
+istore_sp = istore_sp + 1
+endif
+
+! Write fields
+! rho, wz, jz, divu, divb
+if (mod(it,ifields) .eq. 0) then
+write(animO(12:14),'(i3)') istore_fields
+call FFT_SP(rhok2,rho1)
 open(30, file = animO, status = 'new',form='formatted')
-write(30,*) rho2(:,:)
+write(30,*) rho1(:,:)
 close(30)
-!write(animux(11:13),'(i3)') istore
-!open(30, file = animux, status = 'new',form='formatted')
-!write(30,*) ux2(:,:)
-!close(30)
-!write(animuy(11:13),'(i3)') istore
-!open(30, file = animuy, status = 'new',form='formatted')
-!write(30,*) uy2(:,:)
-!close(30)
-!write(animbx(11:13),'(i3)') istore
-!open(30, file = animbx, status = 'new',form='formatted')
-!write(30,*) bx2(:,:)
-!close(30)
-!write(animby(11:13),'(i3)') istore
-!open(30, file = animby, status = 'new',form='formatted')
-!write(30,*) by2(:,:)
-!close(30)
 !
-write(animW(11:13),'(i3)') istore
+write(animW(11:13),'(i3)') istore_fields
+call derivex(uky2,ukydx)
+call derivey(ukx2,ukxdy)
+call FFT_SP(ukydx,uydx)
+call FFT_SP(ukxdy,uxdy)
 open(30, file = animW, status = 'new',form='formatted')
 write(30,*) uydx(:,:)-uxdy(:,:)
 close(30)
-write(animJ(11:13),'(i3)') istore
+!
+call derivex(bky2,bkydx)
+call derivey(bkx2,bkxdy)
+call FFT_SP(bkydx,bydx)
+call FFT_SP(bkxdy,bxdy)
+write(animJ(11:13),'(i3)') istore_fields
 open(30, file = animJ, status = 'new',form='formatted')
 write(30,*) bydx(:,:)-bxdy(:,:)
 close(30)
 !
-write(animdiv(13:15),'(i3)') istore
+write(animdiv(13:15),'(i3)') istore_fields
+call derivex(bkx2,bkxdx)
+call derivey(bky2,bkydy)
+call FFT_SP(bkxdx,bxdx)
+call FFT_SP(bkydy,bydy)
 open(30, file = animdiv, status = 'new',form='formatted')
 write(30,*) bxdx(:,:)+bydy(:,:)
 close(30)
-write(animdivu(13:15),'(i3)') istore
+!
+write(animdivu(13:15),'(i3)') istore_fields
+call derivex(ukx2,ukxdx)
+call derivey(uky2,ukydy)
+call FFT_SP(ukxdx,uxdx)
+call FFT_SP(ukydy,uydy)
 open(30, file = animdivu, status = 'new',form='formatted')
 write(30,*) uxdx(:,:)+uydy(:,:)
 close(30)
-istore = istore + 1
+istore_fields = istore_fields + 1
 end if
+
+! Save spatio-temporal spectra
+if (sts .eq. 1) then
+    if (mod(it,ists) .eq. 0) then
+        timests = timests + dfloat(ists)*deltaT
+        call WriteSpatioTemporalSpectrum(ukx1, uky1, bkx1, bky1, rhok1, timests)
+    end if
+end if
+
 
 end do ! end of the temporal loop
 
-call end_fftw ! Deallocate plans
 
-write(animR(9:11),'(i3)') istore
+! Save fields in real space for restart (maybe should I do it in spectral space?)
+call FFT_SP(rhok1,rho1)
+call FFT_SP(ukx1,ux1)
+call FFT_SP(uky1,uy1)
+call FFT_SP(bkx1,bx1)
+call FFT_SP(bky1,by1)
+call FFT_SP(rhok0,rho0)
+call FFT_SP(ukx0,ux0)
+call FFT_SP(uky0,uy0)
+call FFT_SP(bkx0,bx0)
+call FFT_SP(bky0,by0)
+call FFT_SP(nonlinrhok0,nonlinrho0)
+call FFT_SP(nonlinukx0,nonlinux0)
+call FFT_SP(nonlinuky0,nonlinuy0)
+call FFT_SP(nonlinbkx0,nonlinbx0)
+call FFT_SP(nonlinbky0,nonlinby0)
+call FFT_SP(nonlinrhok1,nonlinrho1)
+call FFT_SP(nonlinukx1,nonlinux1)
+call FFT_SP(nonlinuky1,nonlinuy1)
+call FFT_SP(nonlinbkx1,nonlinbx1)
+call FFT_SP(nonlinbky1,nonlinby1)
+
+write(animR(9:11),'(i3)') istore_fields
 open(30, file = animR, status = 'new',form='unformatted')
 write(30) rho1(:,:),ux1(:,:),uy1(:,:),bx1(:,:),by1(:,:),rho0(:,:),ux0(:,:),uy0(:,:),bx0(:,:),by0(:,:)
 write(30) nonlinrho0(:,:),nonlinux0(:,:),nonlinuy0(:,:),nonlinbx0(:,:),nonlinby0(:,:)
 write(30) nonlinrho1(:,:),nonlinux1(:,:),nonlinuy1(:,:),nonlinbx1(:,:),nonlinby1(:,:)
 close(30)
+
+call end_fftw ! Deallocate plans
 
 close(40)
 close(41)
@@ -412,22 +311,20 @@ print *, 'OK'
 end program CMHD
 
 !*****************************************************************
-SUBROUTINE RandomInit(uxi,uyi,kinj,pi,Na,Nh,N)
+SUBROUTINE RandomInit(ukxi,ukyi)
+use parameters
 use fftw_mod
 ! Initial random field spectra
 implicit none
-integer,parameter :: seed = 800
-double precision spectri(Na+1,Na+1), uxi(N,N), uyi(N,N)
-double precision pi, theta, knc, kinj
-double complex :: spectric1(Nh,N), spectric2(Nh,N)
-integer Na, N, Nh, ii, jj
+double precision spectri(Na+1,Na+1), uxtmp(N,N), uytmp(N,N)
+double precision theta, knc, EU
+double complex :: ukxi(Nh,N), ukyi(Nh,N)
+integer ii, jj
 
 call srand(seed)
-uxi=0.
-uyi=0.
 spectri=0.
-spectric1=0.
-spectric2=0.
+ukxi=0. 
+ukyi=0. 
 do ii = 1, Na+1
 do jj = 1, Na+1
 knc = (kinj - real(ii-1) - real(jj-1))**4
@@ -437,15 +334,21 @@ end do
 do ii = 1, Na+1
 do jj = 1, Na+1
 theta = rand()*2.*pi
-spectric1(jj,ii) = spectri(jj,ii)*cmplx(cos(theta),sin(theta))
+ukxi(jj,ii) = spectri(jj,ii)*(cos(theta) + imag*sin(theta))
 theta = rand()*2.*pi
-spectric2(jj,ii) = spectri(jj,ii)*cmplx(cos(theta),sin(theta))
+ukyi(jj,ii) = spectri(jj,ii)*(cos(theta) + imag*sin(theta))
 end do
 end do
-call dfftw_execute_dft_c2r(plan_back,spectric1,uxi)
-uxi=uxi/real(N*N)
-call dfftw_execute_dft_c2r(plan_back,spectric2,uyi)
-uyi=uyi/real(N*N)
+call FFT_SP(ukxi,uxtmp)
+call FFT_SP(ukyi,uytmp)
+
+! Normalization
+call energyF(uxtmp,uytmp,EU)
+uxtmp=amp*uxtmp/sqrt(EU)
+uytmp=amp*uytmp/sqrt(EU)
+
+call FFT_PS(uxtmp,ukxi)
+call FFT_PS(uytmp,ukyi)
 
 RETURN
 END SUBROUTINE RandomInit
@@ -453,13 +356,14 @@ END SUBROUTINE RandomInit
 !*****************************************************************
 ! Random forcing spectrum
 !*****************************************************************
-SUBROUTINE RandomF(field1,kinj,pi,seed,Na,Nh,N)
+SUBROUTINE RandomF(field1)
+use parameters
 use fftw_mod
 implicit none
 double precision spectri(Na+1,Na+1), field1(N,N)
-double precision pi, theta, knc, kinj
+double precision theta, knc
 double complex :: spectric1(Nh,N)
-integer N, Nh, Na, ii, jj, seed
+integer ii, jj
 
 call srand(seed)
 spectri=0.
@@ -476,54 +380,91 @@ theta = rand()*2.*pi
 spectric1(jj,ii) = spectri(jj,ii)*cmplx(cos(theta),sin(theta))
 end do
 end do
-call dfftw_execute_dft_c2r(plan_back,spectric1,field1)
+! call dfftw_execute_dft_c2r(plan_back,spectric1,field1)
+call FFT_SP(spectric1,field1)
 
 RETURN
 END SUBROUTINE RandomF
 
 !*****************************************************************
-SUBROUTINE energy(rho,ux,uy,bx,by,uxdx,uydy,bxdx,bydy,EU,EB,Erho,Erho2,divu,divb,N)
+SUBROUTINE energy(rho,ux,uy,bx,by,uxdx,uydy,bxdx,bydy,EU,EB,Erho,Erho2,divu,divb)
 !***********compute energies
+use parameters
+use fftw_mod
 implicit none
 double precision EU, EB, Erho, Erho2, divu, divb
-double precision rho(N,N), ux(N,N), uy(N,N), bx(N,N), by(N,N)
-double precision uxdx(N,N), uydy(N,N), bxdx(N,N), bydy(N,N)
-double precision norm
-integer N, ii, jj
+! double precision rho(N,N), ux(N,N), uy(N,N), bx(N,N), by(N,N)
+! double precision uxdx(N,N), uydy(N,N), bxdx(N,N), bydy(N,N)
+double complex rho(Nh,N), ux(Nh,N), uy(Nh,N), bx(Nh,N), by(Nh,N)
+double complex uxdx(Nh,N), uydy(Nh,N), bxdx(Nh,N), bydy(Nh,N)
+double precision uxdxr(N,N), uydyr(N,N), bxdxr(N,N), bydyr(N,N)
+double precision norm, norm2
+integer ii, jj
 
+norm = 1./real(N*N*N)
+norm2 = norm*norm
 EU = 0.
 EB = 0.
 Erho = 0.
 Erho2 = 0.
 divu = 0.
 divb = 0.
+call FFT_SP(uxdx,uxdxr)
+call FFT_SP(uydy,uydyr)
+call FFT_SP(bxdx,bxdxr)
+call FFT_SP(bydy,bydyr)
+
+! TODO: Erho is not properly computed
 do ii = 1, N
-do jj = 1, N
-EU = EU + 0.5d0*(ux(jj,ii)**2 + uy(jj,ii)**2)
-EB = EB + 0.5d0*(bx(jj,ii)**2 + by(jj,ii)**2)
-Erho = Erho + 0.5d0*(1.d0+rho(jj,ii))*(ux(jj,ii)**2 + uy(jj,ii)**2)
-divu = divu + uxdx(jj,ii) + uydy(jj,ii)
-divb = divb + bxdx(jj,ii) + bydy(jj,ii)
-Erho2 = Erho2 + rho(jj,ii)
+EU = EU + 0.5*(abs(ux(1,ii))**2 + abs(uy(1,ii))**2)
+EB = EB + 0.5*(abs(bx(1,ii))**2 + abs(by(1,ii))**2)
+Erho = Erho + 0.5*(1.d0+abs(rho(1,ii)))*(abs(ux(1,ii))**2 + abs(uy(1,ii))**2) ! CHECK
+Erho2 = Erho2 + abs(rho(1,ii))
+do jj = 2, Nh
+EU = EU + (abs(ux(jj,ii))**2 + abs(uy(jj,ii))**2)
+EB = EB + (abs(bx(jj,ii))**2 + abs(by(jj,ii))**2)
+Erho = Erho + (1.d0+abs(rho(jj,ii)))*(abs(ux(jj,ii))**2 + abs(uy(jj,ii))**2)
+Erho2 = Erho2 + abs(rho(jj,ii))
 end do
 end do
-norm = 1.d0/real(N*N)
-EU = EU*norm
-EB = EB*norm
-Erho = Erho*norm
-Erho2 = Erho2*norm
+
+EU = EU*norm2
+EB = EB*norm2
+Erho = Erho*norm2
+Erho2 = Erho2*norm2
+
+! Divergences in real space
+do ii = 1,N
+do jj = 1,N
+divu = divu + uxdxr(jj,ii) + uydyr(jj,ii)
+divb = divb + bxdxr(jj,ii) + bydyr(jj,ii)
+end do
+end do
+
 divu = divu*norm
 divb = divb*norm
+
+! do ii = 1, N
+! do jj = 1, Nh
+! EU = EU + 0.5d0*(abs(ux(jj,ii))**2 + abs(uy(jj,ii))**2)
+! EB = EB + 0.5d0*(abs(bx(jj,ii))**2 + abs(by(jj,ii))**2)
+! Erho = Erho + 0.5d0*(1.d0+rho(jj,ii))*(ux(jj,ii)**2 + uy(jj,ii)**2)
+! Erho2 = Erho2 + rho(jj,ii)
+! divu = divu + uxdxr(jj,ii) + uydyr(jj,ii)
+! divb = divb + bxdxr(jj,ii) + bydyr(jj,ii)
+! end do
+! end do
 
 RETURN
 END SUBROUTINE energy
 
 !*****************************************************************
-SUBROUTINE energyF(ux,uy,EU,N)
+SUBROUTINE energyF(ux,uy,EU)
+use parameters
 !***********compute energy
 implicit none
 double precision EU, ux(N,N), uy(N,N)
-integer N, ii, jj
+integer ii, jj
 
 EU = 0.
 do ii = 1, N
@@ -539,41 +480,47 @@ END SUBROUTINE energyF
 !*****************************************************************
 !     Adaptive timestep
 !*****************************************************************
-SUBROUTINE adaptiveT(a,b,ta,N)
-implicit none
-double precision a(N,N), b(N,N), ta, max1, max2, max3, max4, max
-integer N, ii, jj
-include "fftw3.f"
+! SUBROUTINE adaptiveT(a,b,ta)
+! use parameters
+! implicit none
+! double precision a(N,N), b(N,N), ta, max1, max2, max3, max4, max
+! integer ii, jj
+! include "fftw3.f"
 
-max1 = dabs(a(1,1))
-do ii = 1, N
-do jj = 1, N
-max2 = dabs(a(jj,ii))
-if (max2 .gt. max1) then
-max1=max2
-end if
-end do
-end do
+! max1 = dabs(a(1,1))
+! do ii = 1, N
+! do jj = 1, N
+! max2 = dabs(a(jj,ii))
+! if (max2 .gt. max1) then
+! max1=max2
+! end if
+! end do
+! end do
 
-max3 = dabs(b(1,1))
-do ii = 1, N
-do jj = 1, N
-max4 = dabs(b(jj,ii))
-if (max4 .gt. max3) then
-max3=max4
-end if
-end do
-end do
+! max3 = dabs(b(1,1))
+! do ii = 1, N
+! do jj = 1, N
+! max4 = dabs(b(jj,ii))
+! if (max4 .gt. max3) then
+! max3=max4
+! end if
+! end do
+! end do
 
-max=max1
-if (max3 .gt. max1) then
-max=max3
-end if
-if (max .lt. 2.d0) then
-max=1.d0
-end if
-ta=1.d0/(N*max)
+! max=max1
+! if (max3 .gt. max1) then
+! max=max3
+! end if
+! if (max .lt. 2.d0) then
+! max=1.d0
+! end if
+! ta=1.d0/(N*max)
 
-RETURN
-END SUBROUTINE adaptiveT
+! RETURN
+! END SUBROUTINE adaptiveT
+!*****************************************************************
+
+
+
+
 !*****************************************************************

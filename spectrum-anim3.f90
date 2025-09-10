@@ -1,18 +1,15 @@
 !***********************************************************
 Program RadialSpectrum
+use parameters
 implicit none
-integer, parameter :: N = 256
-integer, parameter :: Nh = N/2+1
-integer, parameter :: Na = N/3  ! partie entière
-double precision spec1d(Nh), spec2d(Nh,N), deltaT, kinj
-integer i, j, k, countk(Nh), Nmax, istore, ii
-integer ndeltaT, inrj, ispec
+double precision spec1d(Nh), spec2d(Nh,N)
+integer i, j, k, countk(Nh), Nmax, ii, istore
 character (len=22) :: anim2D='out_spectrumrho-2D-'
 character (len=22) :: anim1D='out_spectrumrho-1D-'
 
-open(30, file = 'out_parameter', status = 'old',form='formatted')
-read(30,*) deltaT, ndeltaT, inrj, kinj, ispec
-close(30)
+! open(30, file = 'out_parameter', status = 'old',form='formatted')
+! read(30,*) deltaT, ndeltaT, inrj, kinj, ispec, ifields
+! close(30)
 
 Nmax = int(ndeltaT/ispec)
 istore = 100
