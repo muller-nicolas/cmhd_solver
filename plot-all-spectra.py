@@ -12,7 +12,7 @@ filenames_EB = [f'out_spectrumEB-1D-{i:03d}' for i in range(ista,iend+1,iskip)]
 filenames_rho = [f'out_spectrumrho-1D-{i:03d}' for i in range(ista,iend+1,iskip)]
 
 P = np.loadtxt('out_parameter')
-N = int(P[5]/2+1)
+N = int(P[6]/2+1)
 x = np.linspace(1, N, N)
 
 def lissage(S,L):

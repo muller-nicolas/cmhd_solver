@@ -1,8 +1,9 @@
-out*
+out_*
 test*
 fort*
 *.o
 *.mod
+*.exe
 restart*
 *.png
 run*/

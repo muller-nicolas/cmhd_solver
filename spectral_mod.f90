@@ -83,17 +83,36 @@ end do
 RETURN
 END SUBROUTINE derivey
 
+SUBROUTINE spectrum1D(Akx,Aky,spec1d)
+! Computes the 1D spectrum of the 2D fields Akx and Aky. Works for velocity and magnetic fields.
+double precision :: spec1d(Nh), spec2d(Nh,N)
+double complex, intent(in) :: Akx(Nh,N), Aky(Nh,N)
+
+call spectrum2D(Akx,Aky,spec2d)
+call spectrum2D_to_1D(spec2d,spec1d)
+
+RETURN
+END SUBROUTINE spectrum1D
+
+SUBROUTINE spectrumrho1D(rhok,spec1d)
+! Computes the 1D spectrum of the 2D field rhok.
+double precision :: spec1d(Nh), spec2d(Nh,N)
+double complex, intent(in) :: rhok(Nh,N)
+
+call spectrumrho2D(rhok,spec2d)
+call spectrum2D_to_1D(spec2d,spec1d)
+
+RETURN
+END SUBROUTINE spectrumrho1D
+
 !*****************************************************************
-SUBROUTINE spectrum(ukx,uky,Ek)
+SUBROUTINE spectrum2D(ukx,uky,Ek)
 !***********compute the 2D spectrum
-! double precision, intent(in)  :: ukx(Nh,N), uky(Nh,N)
-double precision, intent(out) :: Ek(Nh,N)
-double complex :: ukx(Nh,N), uky(Nh,N), Ek1(Nh,N)
+double precision :: Ek(Nh,N), Ek1(Nh,N)
+double complex :: ukx(Nh,N), uky(Nh,N)
 integer iia, iib
 
-! call dfftw_execute_dft_r2c(plan_for,ux,ukx)
-! call dfftw_execute_dft_r2c(plan_for,uy,uky)
-
+Ek = 0.
 Ek1 = abs(ukx)**2 + abs(uky)**2
 do iia = 1, Nh
 do iib = 1, N
@@ -102,17 +121,42 @@ end do
 end do
 
 RETURN
-END SUBROUTINE spectrum
+END SUBROUTINE spectrum2D
+
+SUBROUTINE spectrum2D_to_1D(spec2d,spec1d)
+double precision, intent(in)  :: spec2d(Nh,N)
+double precision, intent(out) :: spec1d(Nh)
+integer i, j, k, countk(Nh), Nmax, ii
+
+!TODO: Check: should count twice the values 2:Nh
+spec1d = 0.
+countk = 0
+do i = 1, N
+    j=1
+    k = ceiling(sqrt(real((i-1)*(i-1)+(j-1)*(j-1)))-0.5)
+    if (k .le. Nh) then
+        spec1d(k) = spec2d(j,i) + spec1d(k)
+        countk(k) = countk(k) + 1
+    end if
+    do j = 2, Nh
+        k = ceiling(sqrt(real((i-1)*(i-1)+(j-1)*(j-1)))-0.5)
+        if (k .le. Nh) then
+            spec1d(k) = 2.*spec2d(j,i) + spec1d(k)
+            countk(k) = countk(k) + 2
+        end if
+    end do
+end do
+spec1d = spec1d/(real(countk)+1.d-40)
+
+END SUBROUTINE spectrum2D_to_1D
 
 !*****************************************************************
-SUBROUTINE spectrumrho(rhok,Ek)
+SUBROUTINE spectrumrho2D(rhok,Ek)
 !***********compute the 2D spectrum
-! double precision, intent(in)  :: rho(N,N)
 double precision, intent(out) :: Ek(Nh,N)
 double complex :: rhok(Nh,N), Ek1(Nh,N)
 integer iia, iib
 
-! call dfftw_execute_dft_r2c(plan_for,rho,rhok)
 Ek1 = abs(rhok)**2
 do iia = 1, Nh
 do iib = 1, N
@@ -121,7 +165,8 @@ end do
 end do
 
 RETURN
-END SUBROUTINE spectrumrho
+END SUBROUTINE spectrumrho2D
+
 
 SUBROUTINE WriteSpatioTemporalSpectrum(rhok, ukx, uky, bkx, bky, time)
 double complex :: rhok(Nh,N), ukx(Nh,N), uky(Nh,N), bkx(Nh,N), bky(Nh,N)

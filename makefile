@@ -10,23 +10,24 @@ PYTHON = /usr/local/opt/python@3.9/bin/python3.9
 # LDFLAGS = -L/opt/cray/pe/fftw/3.3.10.6/x86_genoa/lib -I/opt/cray/pe/fftw/3.3.10.6/x86_genoa/include
 
 # Targets
-all: run_cmhd run_spectrum1 run_spectrum2 run_spectrum3
+# all: run_cmhd run_spectrum1 run_spectrum2 run_spectrum3
+all: CMHD2D
 
 clean:
-	rm -f out* *.mod STS* restart-* CMHD2D-v8 spectrum-anim spectrum-anim2 spectrum-anim3
+	rm -f out_* *.mod STS* restart-* *.exe # CMHD2D-v8 spectrum-anim spectrum-anim2 spectrum-anim3
 
 spectra: run_spectrum1 run_spectrum2 run_spectrum3
 
-compile_all: CMHD2D spectrum-anim spectrum-anim2 spectrum-anim3
+compile_all: CMHD2D #spectrum-anim spectrum-anim2 spectrum-anim3
 
-SRC = parameters.f90 FFTW_mod.f90 adaptive_mod.f90 spectral_mod.f90 cMHD_mod.f90 CMHD2D-v8.f90
+SRC = parameters.f90 FFTW_mod.f90 adaptive_mod.f90 spectral_mod.f90 cMHD_mod.f90 outputs_mod.f90 CMHD2D.f90
 
 # Build and run CMHD2D
 CMHD2D: $(SRC)
-	$(FC) $(FFLAGS) $(LDFLAGS) $(LIBS) $(SRC) -o CMHD2D-v8 
+	$(FC) $(FFLAGS) $(LDFLAGS) $(LIBS) $(SRC) -o CMHD2D.exe
 
-run_cmhd: CMHD2D-v8
-	./CMHD2D-v8
+run_cmhd: CMHD2D
+	./CMHD2D
 
 # Spectrum 1
 spectrum-anim: spectrum-anim.f90
