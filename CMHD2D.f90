@@ -3,7 +3,6 @@
 !  Sébastien Galtier - LPP - Version 8 (July 2025)
 !*********************************************************************
 
-! TODO: outputs as functions
 ! TODO: Save in real time, and not in the end
 ! TODO: Reduce number of fields (better scalability)
 ! TODO: Pointers for fields in memory (Reduce memory usage)
@@ -45,14 +44,6 @@ double complex :: nonlinrhok1(Nh,N), nonlinukx1(Nh,N), nonlinuky1(Nh,N), nonlinb
 
 integer i, j, it 
 character (len=11) :: animR='restart-'
-! character (len=21) :: animE='out_spectrumEU-2D-'
-! character (len=21) :: animB='out_spectrumEB-2D-'
-! character (len=22) :: animrho='out_spectrumrho-2D-'
-! character (len=14) :: animO='out_rho-2D-'
-! character (len=13) :: animW='out_wz-2D-'
-! character (len=13) :: animJ='out_jz-2D-'
-! character (len=15) :: animdiv='out_divb-2D-'
-! character (len=15) :: animdivu='out_divu-2D-'
 
 call cpu_time(time=t1)
 
@@ -72,10 +63,6 @@ if (nrestart .ne. 0) then
 open(30, file='out_parameter', status='new', form='formatted')
 write(30,*) deltaT, ndeltaT, inrj, kinj, ispec, ifields, N, dk
 close(30)
-
-open(51, file = 'out_deltaT', status = 'new',form='formatted')
-! open(52, file = 'out_time', status = 'new',form='formatted')
-open(53, file = 'out_nu', status = 'new',form='formatted')
 
 ! Initilize velocity field
 call RandomInit(ukx0,uky0)
@@ -143,9 +130,13 @@ write(52,*) time
 close(52)
 
 !****************Adaptive timestep
+! open(53, file = 'out_nu', status = 'new',form='formatted')
 ! write(53,*) nu
+! close(53)
 ! call adaptiveT(ukx2,rhok2,ta)
+! open(51, file = 'out_deltaT', status = 'append',form='formatted')
 ! write(51,*) ta
+! close(51)
 ! deltaT = ta*0.2d0 ! condition CFL
 ! nu = 1./ta*(1.d0/N)**4 ! condition CFL
 ! eta = nu
@@ -187,8 +178,6 @@ close(30)
 
 call end_fftw ! Deallocate plans
 
-close(40)
-close(41)
 call cpu_time(time=t2)
 write(*,*) "cpu time", t2-t1
 

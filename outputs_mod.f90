@@ -168,8 +168,8 @@ character (len=15) :: animdivu='out_divu-2D-'
 
 write(animO(12:14),'(i3)') istore_fields
 call FFT_SP(rhok,rho)
-open(30, file = animO, status = 'new',form='formatted')
-write(30,*) rho(:,:)
+open(30, file = animO, status='replace', form='unformatted', access='stream')
+write(30) rho(:,:)
 close(30)
 !
 write(animW(11:13),'(i3)') istore_fields
@@ -177,8 +177,8 @@ call derivex(uky,ukydx)
 call derivey(ukx,ukxdy)
 call FFT_SP(ukydx,uydx)
 call FFT_SP(ukxdy,uxdy)
-open(30, file = animW, status = 'new',form='formatted')
-write(30,*) uydx(:,:)-uxdy(:,:)
+open(30, file = animW, status='replace', form='unformatted', access='stream')
+write(30) uydx(:,:)-uxdy(:,:)
 close(30)
 !
 call derivex(bky,bkydx)
@@ -186,8 +186,8 @@ call derivey(bkx,bkxdy)
 call FFT_SP(bkydx,bydx)
 call FFT_SP(bkxdy,bxdy)
 write(animJ(11:13),'(i3)') istore_fields
-open(30, file = animJ, status = 'new',form='formatted')
-write(30,*) bydx(:,:)-bxdy(:,:)
+open(30, file = animJ, status='replace', form='unformatted', access='stream')
+write(30) bydx(:,:)-bxdy(:,:)
 close(30)
 !
 write(animdiv(13:15),'(i3)') istore_fields
@@ -195,8 +195,8 @@ call derivex(bkx,bkxdx)
 call derivey(bky,bkydy)
 call FFT_SP(bkxdx,bxdx)
 call FFT_SP(bkydy,bydy)
-open(30, file = animdiv, status = 'new',form='formatted')
-write(30,*) bxdx(:,:)+bydy(:,:)
+open(30, file = animdiv, status='replace', form='unformatted', access='stream')
+write(30) bxdx(:,:)+bydy(:,:)
 close(30)
 !
 write(animdivu(13:15),'(i3)') istore_fields
@@ -204,8 +204,8 @@ call derivex(ukx,ukxdx)
 call derivey(uky,ukydy)
 call FFT_SP(ukxdx,uxdx)
 call FFT_SP(ukydy,uydy)
-open(30, file = animdivu, status = 'new',form='formatted')
-write(30,*) uxdx(:,:)+uydy(:,:)
+open(30, file = animdivu, status='replace', form='unformatted', access='stream')
+write(30) uxdx(:,:)+uydy(:,:)
 close(30)
 istore_fields = istore_fields + 1
 
