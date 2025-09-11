@@ -17,12 +17,6 @@ if len(sys.argv)>1:
 if len(sys.argv)>2:
     iend = int(sys.argv[2])
 
-# def load_fields(path, name, time, N):
-#     filename = path + 'out_' + name + f'-2D-{time}'
-#     L = np.loadtxt(filename)
-#     field = np.reshape(L,(N,N))
-#     return field
-
 def load_fields(path, name, time, N):
     filename = path + 'out_' + name + f'-2D-{time}'
     field = np.fromfile(filename, dtype=np.float64).reshape((N,N))

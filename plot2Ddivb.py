@@ -1,17 +1,17 @@
-from mpl_toolkits.mplot3d import Axes3D
 import matplotlib.pyplot as plt
-# import math
-from matplotlib import cm
-# from matplotlib.ticker import LinearLocator, FormatStrFormatter
 import numpy as np
 
-time = 119
+time = 109
 P = np.loadtxt('out_parameter')
-N = int(P[5])
+N = int(P[6])
 size=2.*np.pi
 
-L = np.loadtxt(f'out_divb-2D-{time}')
-Z0 = np.reshape(L,(N,N))
+def load_fields(path, name, time, N):
+    filename = path + 'out_' + name + f'-2D-{time}'
+    field = np.fromfile(filename, dtype=np.float64).reshape((N,N))
+    return field
+
+Z0 = load_fields("./", "divb", time, N)
 #Z1 = pow(abs(Z0)/abs(Z0).max(),1)*Z0/abs(Z0)
 #Z1 = pow(abs(Z0)/abs(Z0).max(),3)*Z0/abs(Z0)
 
@@ -23,7 +23,7 @@ A=1000
 fig = plt.figure(figsize=(10,8))
 #im = plt.imshow(Z1, cmap=cm.coolwarm, extent=[0, size, 0, size],
 #    vmin=-1/A, vmax=1/A, interpolation='bicubic')
-im = plt.imshow(Z0, cmap=cm.coolwarm, extent=[0, size, 0, size])
+im = plt.imshow(Z0, cmap=plt.cm.coolwarm, extent=[0, size, 0, size])
 #    ,vmin=-1/A, vmax=1/A, interpolation='bicubic')
 
 plt.title('$div_b(x,y)$')
