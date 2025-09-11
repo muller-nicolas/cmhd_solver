@@ -20,5 +20,5 @@ module load cray-mpich/8.1.26
 module load cray-fftw/3.3.10.6
 
 date
-srun ./CMHD2D-v8
+srun ./CMHD2D.exe
 date

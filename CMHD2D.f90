@@ -3,11 +3,8 @@
 !  Sébastien Galtier - LPP - Version 8 (July 2025)
 !*********************************************************************
 
-! TODO: Save in real time, and not in the end
 ! TODO: Reduce number of fields (better scalability)
 ! TODO: Pointers for fields in memory (Reduce memory usage)
-! TODO: Save fields as binary files (Reduce memory stockage)
-! TODO: include spectrum-anim in the code (for practical purposes)
 ! TODO: handle precision globally (for practical purposes)
 ! TODO: Parallelisation: MPI, openMP or GPU
 ! TODO: RK4 (Numerical precision)
@@ -31,8 +28,6 @@ double precision :: rho0(N,N), ux0(N,N), uy0(N,N), bx0(N,N), by0(N,N)
 double precision :: rho1(N,N), ux1(N,N), uy1(N,N), bx1(N,N), by1(N,N)
 double precision :: uxdx(N,N), uxdy(N,N), uydx(N,N), uydy(N,N)
 double precision :: bxdy(N,N), bydx(N,N), bxdx(N,N), bydy(N,N)
-! double precision :: nonlinrho0(N,N), nonlinux0(N,N), nonlinuy0(N,N), nonlinbx0(N,N), nonlinby0(N,N)
-! double precision :: nonlinrho1(N,N), nonlinux1(N,N), nonlinuy1(N,N), nonlinbx1(N,N), nonlinby1(N,N)
 
 double precision EU, EB, Erho, Erho2
 
@@ -67,13 +62,14 @@ close(30)
 ! Initilize velocity field
 call RandomInit(ukx0,uky0)
 
+! Do one iteration of the time-stepping for AB2
 call RHS(rhok0,ukx0,uky0,bkx0,bky0,nonlinrhok0,nonlinukx0,nonlinuky0,nonlinbkx0,nonlinbky0)
 
 rhok1 = rhok0 + deltaTi*nonlinrhok0
-ukx1 = ukx0 + deltaTi*nonlinukx0
-uky1 = uky0 + deltaTi*nonlinuky0
-bkx1 = bkx0 + deltaTi*nonlinbkx0
-bky1 = bky0 + deltaTi*nonlinbky0
+ukx1  = ukx0  + deltaTi*nonlinukx0
+uky1  = uky0  + deltaTi*nonlinuky0
+bkx1  = bkx0  + deltaTi*nonlinbkx0
+bky1  = bky0  + deltaTi*nonlinbky0
 end if
 
 !****************** In case of restart the code starts below *************
@@ -96,7 +92,7 @@ call RandomF(ukx0)
 call RandomF(uky0)
 
 call RHS(rhok1,ukx1,uky1,bkx1,bky1,nonlinrhok1,nonlinukx1,nonlinuky1,nonlinbkx1,nonlinbky1)
-call check_nan(rhok1)
+call check_nan(rhok1) 
 
 ! Adams-Bashford method
 rhok2 = rhok1 + deltaT*(1.5*nonlinrhok1 - 0.5*nonlinrhok0)
@@ -121,11 +117,9 @@ nonlinbky0=nonlinbky1
 
 ! Compute and write energy
 if ( (mod(it,inrj) .eq. 0) ) then
-
 call save_energy(rhok2,ukx2,uky2,bkx2,bky2)
-
-open(52, file='out_time', position='append',form='formatted')
 time = time + dfloat(inrj)*deltaT
+open(52, file='out_time', position='append',form='formatted')
 write(52,*) time
 close(52)
 
@@ -140,7 +134,6 @@ close(52)
 ! deltaT = ta*0.2d0 ! condition CFL
 ! nu = 1./ta*(1.d0/N)**4 ! condition CFL
 ! eta = nu
-
 end if
 
 ! Compute and write spectra
@@ -163,9 +156,7 @@ if (sts .eq. 1) then
     end if
 end if
 
-
 end do ! end of the temporal loop
-
 
 ! Save fields in spectral space for restart
 write(animR(9:11),'(i3)') istore_fields
@@ -183,6 +174,11 @@ write(*,*) "cpu time", t2-t1
 
 print *, 'OK'
 end program CMHD
+
+
+
+
+
 
 !*****************************************************************
 SUBROUTINE RandomInit(ukxi,ukyi)
@@ -230,18 +226,18 @@ END SUBROUTINE RandomInit
 !*****************************************************************
 ! Random forcing spectrum
 !*****************************************************************
-SUBROUTINE RandomF(field1)
+SUBROUTINE RandomF(field)
 use parameters
 use fftw_mod
 implicit none
 double precision spectri(Na+1,Na+1)
 double precision theta, knc
-double complex :: field1(Nh,N)
+double complex :: field(Nh,N)
 integer ii, jj
 
 call srand(seed)
 spectri=0.
-field1=0.
+field=0.
 do ii = 1, Na+1
 do jj = 1, Na+1
 knc = (kinj - real(ii-1) - real(jj-1))**4
@@ -251,14 +247,12 @@ end do
 do ii = 1, Na+1
 do jj = 1, Na+1
 theta = rand()*2.*pi
-field1(jj,ii) = spectri(jj,ii)*(cos(theta) + imag*sin(theta))
+field(jj,ii) = spectri(jj,ii)*(cos(theta) + imag*sin(theta))
 end do
 end do
 
 RETURN
 END SUBROUTINE RandomF
-
-
 
 !*****************************************************************
 SUBROUTINE energyF(ux,uy,EU)
@@ -279,10 +273,7 @@ EU = EU/real(N*N)
 RETURN
 END SUBROUTINE energyF
 
-
 !*****************************************************************
 
 
 
-
-!*****************************************************************
