@@ -1,6 +1,6 @@
 MODULE cMHD_mod
 
-use, intrinsic :: iso_c_binding
+    use, intrinsic :: iso_c_binding
 use parameters
 use fftw_mod
 use adaptive_mod
@@ -255,18 +255,25 @@ END SUBROUTINE RHS5
 
 SUBROUTINE dissipation(rhok,ukx,uky,bkx,bky)
 double complex :: rhok(Nh,N), ukx(Nh,N), uky(Nh,N), bkx(Nh,N), bky(Nh,N)
+double precision :: k4, kx3, ky3
+double complex :: dissip_nu, dissip_eta
 integer :: i,j
 
 ! Implicit method for dissipation term
 ! Hypoviscosity (bilaplacian) + dispersion
 ! TODO: Dissipation in rho?
 do i = 1, N
+    kx3 = kx(i)**3
     do j = 1, Nh
-        rhok(j,i) = rhok(j,i)*exp(-(kd(j,i)*nu*kd(j,i)+imag*disp*(kx(i)**3+ky(j)**3))*deltaT)
-        ukx(j,i) = ukx(j,i)*exp(-(kd(j,i)*nu*kd(j,i)+imag*disp*(kx(i)**3+ky(j)**3))*deltaT)
-        uky(j,i) = uky(j,i)*exp(-(kd(j,i)*nu*kd(j,i)+imag*disp*(kx(i)**3+ky(j)**3))*deltaT)
-        bkx(j,i) = bkx(j,i)*exp(-(kd(j,i)*eta*kd(j,i)+imag*disp*(kx(i)**3+ky(j)**3))*deltaT)
-        bky(j,i) = bky(j,i)*exp(-(kd(j,i)*eta*kd(j,i)+imag*disp*(kx(i)**3+ky(j)**3))*deltaT)
+        k4 = kd(j,i)*kd(j,i)
+        ky3 = ky(j)**3
+        dissip_nu = exp(-(k4*nu +imag*disp*(kx3+ky3))*deltaT)
+        dissip_eta= exp(-(k4*eta+imag*disp*(kx3+ky3))*deltaT)
+        rhok(j,i) = rhok(j,i)*dissip_nu
+        ukx(j,i) = ukx(j,i)*dissip_nu
+        uky(j,i) = uky(j,i)*dissip_nu
+        bkx(j,i) = bkx(j,i)*dissip_eta
+        bky(j,i) = bky(j,i)*dissip_eta
     end do
 end do
 

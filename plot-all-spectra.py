@@ -1,19 +1,23 @@
 import matplotlib.pyplot as plt
 import numpy as np
-from pylab import *
+import sys
 
-fig, ax = subplots(1,3,figsize=(15,5), sharex=True, sharey=True, tight_layout=True)
+fig, ax = plt.subplots(1,3,figsize=(15,5), sharex=True, sharey=True, tight_layout=True)
 
 ista = 100
 iend = 109
-iskip = 2
+iskip = 1
+if len(sys.argv)>1:
+    iend = int(sys.argv[1])
+
 filenames_EU = [f'out_spectrumEU-1D-{i:03d}' for i in range(ista,iend+1,iskip)]
 filenames_EB = [f'out_spectrumEB-1D-{i:03d}' for i in range(ista,iend+1,iskip)]
 filenames_rho = [f'out_spectrumrho-1D-{i:03d}' for i in range(ista,iend+1,iskip)]
 
 P = np.loadtxt('out_parameter')
-N = int(P[6]/2+1)
-x = np.linspace(1, N, N)
+kmax = int(P[6]/2+1) # kmax
+k = np.linspace(1, kmax, kmax)
+print(k)
 
 def lissage(S,L):
     res = np.copy(S) # duplication des valeurs
@@ -27,11 +31,12 @@ def lissage(S,L):
 a=2
 xp = 0
 
-nfiles = (iend - ista + 1) // iskip
+nfiles = len(filenames_EU)
 colors = [ plt.cm.viridis(i/nfiles) for i in range(nfiles) ]
 
-norm = np.pi*x*x**(xp)/(N*N*N*N)
-for i in range(len(filenames_EU)):
+# TODO: Check this normalization, as well as the lissage function
+norm = np.pi*k*k**(xp)/(kmax*kmax*kmax*kmax)
+for i in range(nfiles):
     filename_u = filenames_EU[i]
     filename_b = filenames_EB[i]
     filename_r = filenames_rho[i]
@@ -40,13 +45,16 @@ for i in range(len(filenames_EU)):
     Sb = np.loadtxt(filename_b)  # load data from file
     Sr = np.loadtxt(filename_r)  # load data from file
 
-    Ru=lissage(Su,a)*norm
-    Rb=lissage(Sb,a)*norm
-    Rr=lissage(Sr,a)*norm
+    # Ru=lissage(Su,a)*norm
+    # Rb=lissage(Sb,a)*norm
+    # Rr=lissage(Sr,a)*norm
+    Ru=Su
+    Rb=Sb
+    Rr=Sr
 
-    ax[0].loglog(x,Ru,label=f't{i+1}', color=colors[i])
-    ax[1].loglog(x,Rb,label=f't{i+1}', color=colors[i])
-    ax[2].loglog(x,Rr,label=f't{i+1}', color=colors[i])
+    ax[0].loglog(k,Ru,label=f't{i+1}', color=colors[i])
+    ax[1].loglog(k,Rb,label=f't{i+1}', color=colors[i])
+    ax[2].loglog(k,Rr,label=f't{i+1}', color=colors[i])
 
 ax[0].set_xlabel(r'$k$')
 ax[1].set_xlabel(r'$k$')
@@ -56,14 +64,18 @@ ax[1].set_ylabel(r'$E_b(k)$')
 ax[2].set_ylabel(r'$E_{\rho}(k)$')
 
 # plt.grid(True,linestyle=':',which="both")
-ax[0].set_xlim(right=N)
-ax[0].set_ylim(1.e-30,1.e-2)
+ax[0].set_xlim(right=kmax)
+ax[0].set_ylim(1.e-15,1.e-1)
 
-#ks = np.array([2.5e0,1.5e1])
-#plt.loglog(ks, ks ** (-6.) * 1e5, 'k',linewidth=3.)
-#kl = np.array([1.e0,1.e1])
-#plt.ylim(1e-12,1e9)
+ax[0].axvline(kmax*2/3, color='k', linestyle='--')
+ax[1].axvline(kmax*2/3, color='k', linestyle='--')
+ax[2].axvline(kmax*2/3, color='k', linestyle='--')
 
-# plt.legend()
+ax[0].plot(k[2:], (k[2:]/k[2])**(-6.)*Ru[2], color='k', ls='--',linewidth=1.)
+ax[1].plot(k[2:], (k[2:]/k[2])**(-6.)*Rb[2], color='k', ls='--',linewidth=1.)
+ax[2].plot(k[2:], (k[2:]/k[2])**(-6.)*Rr[2], color='k', ls='--',linewidth=1.)
+
+ax[0].legend(ncol=2)
+
 # plt.savefig("Figure-spectrum-Eu.png")
 plt.show()
