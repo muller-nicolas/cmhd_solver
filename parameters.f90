@@ -13,10 +13,10 @@ double precision :: eta = nu0 ! magnetic viscosity
 
 integer :: istore_sp = 100
 integer :: istore_fields = 100
-integer, parameter :: ndeltaT = 10000
-integer, parameter :: inrj = 100
-integer, parameter :: ispec = 1000  !*********must be a multiple of inrj
-integer, parameter :: ifields = 1000  !*********must be a multiple of inrj
+integer, parameter :: ndeltaT = 1000
+integer, parameter :: inrj = 10
+integer, parameter :: ispec = 100  !*********must be a multiple of inrj
+integer, parameter :: ifields = 100  !*********must be a multiple of inrj
 ! integer :: irestart = 1000
 double precision, parameter :: kinj = 3.
 double precision, parameter :: disp = 0.d-2  ! without dispersion => 0.d0

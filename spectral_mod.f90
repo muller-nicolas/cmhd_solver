@@ -42,11 +42,9 @@ end do
 RETURN
 END SUBROUTINE Initk
 
+!*****************************************************************
 SUBROUTINE derivex(aa,bb)
 ! Computation of the x-derivative
-! double precision, intent(in)  :: aa(N,N)
-! double precision, intent(out) :: bb(N,N)
-! double complex :: ctmp(Nh,N)
 double complex, intent(in)  :: aa(Nh,N)
 double complex, intent(out) :: bb(Nh,N)
 integer i,j
@@ -76,6 +74,37 @@ end do
 RETURN
 END SUBROUTINE derivey
 
+!*****************************************************************
+SUBROUTINE divergence(Akx,Aky,divk)
+double complex, intent(in)  :: Akx(Nh,N), Aky(Nh,N)
+double complex, intent(out) :: divk(Nh,N)
+double complex  :: tmpk(Nh,N)
+
+divk = 0.
+call derivex(Akx,tmpk)
+divk = divk + tmpk
+call derivey(Aky,tmpk)
+divk = divk + tmpk
+
+RETURN
+END SUBROUTINE divergence
+
+!*****************************************************************
+SUBROUTINE curl(Akx,Aky,curlk)
+double complex, intent(in)  :: Akx(Nh,N), Aky(Nh,N)
+double complex, intent(out) :: curlk(Nh,N)
+double complex  :: tmpk(Nh,N)
+
+curlk = 0.
+call derivex(Aky,tmpk)
+curlk = curlk + tmpk
+call derivey(Akx,tmpk)
+curlk = curlk - tmpk
+
+RETURN
+END SUBROUTINE curl
+
+!*****************************************************************
 SUBROUTINE spectrum1D(Akx,Aky,spec1d)
 ! Computes the 1D spectrum of the 2D fields Akx and Aky. Works for velocity and magnetic fields.
 double precision :: spec1d(Nh) !, spec2d(Nh,N)
@@ -100,6 +129,7 @@ spec1d = spec1d/real(N*N*N*N)
 RETURN
 END SUBROUTINE spectrum1D
 
+!*****************************************************************
 SUBROUTINE spectrumrho1D(rhok,spec1d)
 ! Computes the 1D spectrum of the 2D field rhok.
 double precision :: spec1d(Nh) !, spec2d(Nh,N)

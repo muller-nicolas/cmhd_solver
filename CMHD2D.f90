@@ -25,11 +25,6 @@ double precision Ek(Nh,N)
 double precision t1, t2
 double precision ta, time, timests
 
-! double precision :: rho0(N,N), ux0(N,N), uy0(N,N), bx0(N,N), by0(N,N)
-! double precision :: rho1(N,N), ux1(N,N), uy1(N,N), bx1(N,N), by1(N,N)
-! double precision :: uxdx(N,N), uxdy(N,N), uydx(N,N), uydy(N,N)
-! double precision :: bxdy(N,N), bydx(N,N), bxdx(N,N), bydy(N,N)
-
 double complex :: ukx0(Nh,N), uky0(Nh,N), bkx0(Nh,N), bky0(Nh,N), rhok0(Nh,N)
 double complex :: ukx1(Nh,N), uky1(Nh,N), bkx1(Nh,N), bky1(Nh,N), rhok1(Nh,N)
 double complex :: ukx2(Nh,N), uky2(Nh,N), bkx2(Nh,N), bky2(Nh,N), rhok2(Nh,N)
