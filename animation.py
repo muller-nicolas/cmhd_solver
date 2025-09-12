@@ -8,7 +8,8 @@ name = 'divb' # 'rho' or 'jz' or 'wz' or 'divu' or 'divb'
 ista = 100
 iend = 109
 iskip = 1
-N = 256
+P = np.loadtxt('out_parameter')
+N = int(P[6]) # N
 
 cmap = plt.cm.coolwarm
 

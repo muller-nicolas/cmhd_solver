@@ -8,6 +8,7 @@ restart*
 *.png
 run*/
 256/
+128/
 old/
 backup/
 

@@ -49,15 +49,13 @@ SUBROUTINE derivex(aa,bb)
 ! double complex :: ctmp(Nh,N)
 double complex, intent(in)  :: aa(Nh,N)
 double complex, intent(out) :: bb(Nh,N)
-integer ii
+integer i,j
 
-! call dfftw_execute_dft_r2c(plan_for,aa,ctmp)
-do ii = 1, N
-! ctmp(:,ii) = imag*ctmp(:,ii)*kx(ii)
-bb(:,ii) = imag*aa(:,ii)*kx(ii)
+do i = 1, N
+    do j = 1, Nh
+        bb(j,i) = imag*aa(j,i)*kx(i)
+    end do
 end do
-! call dfftw_execute_dft_c2r(plan_back,ctmp,bb)
-! bb=bb/real(N*N)
 
 RETURN
 END SUBROUTINE derivex
@@ -67,18 +65,13 @@ SUBROUTINE derivey(aa,bb)
 ! Computation of the y-derivative
 double complex, intent(in)  :: aa(Nh,N)
 double complex, intent(out) :: bb(Nh,N)
-! double precision, intent(in)  :: aa(N,N)
-! double precision, intent(out) :: bb(N,N)
-! double complex :: ctmp(Nh,N)
-integer jj
+integer i,j
 
-! call dfftw_execute_dft_r2c(plan_for,aa,ctmp)
-do jj = 1, Nh
-! ctmp(jj,:) = imag*ctmp(jj,:)*ky(jj)
-bb(jj,:) = imag*aa(jj,:)*ky(jj)
+do i=1,N
+    do j = 1, Nh
+        bb(j,i) = imag*aa(j,i)*ky(j)
+    end do
 end do
-! call dfftw_execute_dft_c2r(plan_back,ctmp,bb)
-! bb=bb/real(N*N)
 
 RETURN
 END SUBROUTINE derivey
@@ -91,10 +84,9 @@ integer i, j, k
 
 spec1d = 0.
 do i = 1, N
-    j=1
-    k = int(sqrt(kd(j,i))/dk+0.5)
+    k = int(sqrt(kd(1,i))/dk+0.5)
     if (k .le. Nh) then
-        spec1d(k) = spec1d(k) + (abs(Akx(j,i))**2 + abs(Aky(j,i))**2)
+        spec1d(k) = spec1d(k) + (abs(Akx(1,i))**2 + abs(Aky(1,i))**2)
     end if
     do j = 2, Nh
         k = int(sqrt(kd(j,i))/dk+0.5)
@@ -116,10 +108,9 @@ integer i, j, k
 
 spec1d = 0.
 do i = 1, N
-    j=1
-    k = int(sqrt(kd(j,i))/dk+0.5)
+    k = int(sqrt(kd(1,i))/dk+0.5)
     if (k .le. Nh) then
-        spec1d(k) = spec1d(k) + (abs(rhok(j,i))**2)
+        spec1d(k) = spec1d(k) + (abs(rhok(1,i))**2)
     end if
     do j = 2, Nh
         k = int(sqrt(kd(j,i))/dk+0.5)
@@ -134,69 +125,6 @@ RETURN
 END SUBROUTINE spectrumrho1D
 
 !*****************************************************************
-! SUBROUTINE spectrum2D(ukx,uky,Ek)
-! !***********compute the 2D spectrum
-! double precision :: Ek(Nh,N)
-! double complex :: ukx(Nh,N), uky(Nh,N)
-! integer i, j
-
-! do i = 1, N
-!     do j = 1, Nh
-!         Ek(j,i) = abs(ukx(j,i))**2 + abs(uky(j,i))**2
-!     end do
-! end do
-
-! RETURN
-! END SUBROUTINE spectrum2D
-
-! SUBROUTINE spectrum2D_to_1D(spec2d,spec1d)
-! double precision, intent(in)  :: spec2d(Nh,N)
-! double precision, intent(out) :: spec1d(Nh)
-! integer i, j, k, countk(Nh), ii
-
-! !TODO: Check: should count twice the values 2:Nh
-! spec1d = 0.
-! countk = 0
-! do i = 1, N
-!     j=1
-!     ! k = int(sqrt(real((i-1)*(i-1)+(j-1)*(j-1)))+0.5)
-!     k = int(sqrt(kd(j,i))/dk+0.5)
-!     if (k .le. Nh) then
-!         spec1d(k) = spec1d(k) + spec2d(j,i)
-!         countk(k) = countk(k) + 1
-!     end if
-!     do j = 2, Nh
-!         ! k = int(sqrt(real((i-1)*(i-1)+(j-1)*(j-1)))+0.5)
-!         k = int(sqrt(kd(j,i))/dk+0.5)
-!         if (k .le. Nh) then
-!             spec1d(k) = spec1d(k) + 2.*spec2d(j,i)
-!             countk(k) = countk(k) + 2
-!         end if
-!     end do
-! end do
-! ! spec1d = spec1d/(real(countk)+1.d-40)
-! spec1d = spec1d/real(N*N*N*N)
-
-! END SUBROUTINE spectrum2D_to_1D
-
-! !*****************************************************************
-! SUBROUTINE spectrumrho2D(rhok,Ek)
-! !***********compute the 2D spectrum
-! double precision, intent(out) :: Ek(Nh,N)
-! double complex :: rhok(Nh,N), Ek1(Nh,N)
-! integer iia, iib
-
-! Ek1 = abs(rhok)**2
-! do iia = 1, Nh
-! do iib = 1, N
-! Ek(iia,iib) = real(Ek1(iia,iib))
-! end do
-! end do
-
-! RETURN
-! END SUBROUTINE spectrumrho2D
-
-
 SUBROUTINE WriteSpatioTemporalSpectrum(rhok, ukx, uky, bkx, bky, time)
 double complex :: rhok(Nh,N), ukx(Nh,N), uky(Nh,N), bkx(Nh,N), bky(Nh,N)
 double precision :: time, Euxx(Nh,N), Euyy(Nh,N), Ebxx(Nh,N), Ebyy(Nh,N)

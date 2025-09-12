@@ -254,21 +254,21 @@ nonlinbky = nonlinbky + (tmpk1 - tmpk2 - tmpk3 - tmpk4)
 END SUBROUTINE RHS5
 
 SUBROUTINE dissipation(rhok,ukx,uky,bkx,bky)
-double complex :: rhok(Nh,N), ukx(Nh,N), uky(Nh,N), bkx(Nh,N), bky(Nh,N)
+double complex, intent(inout) :: rhok(Nh,N), ukx(Nh,N), uky(Nh,N), bkx(Nh,N), bky(Nh,N)
 double precision :: k4, kx3, ky3
 double complex :: dissip_nu, dissip_eta
 integer :: i,j
 
 ! Implicit method for dissipation term
 ! Hypoviscosity (bilaplacian) + dispersion
-! TODO: Dissipation in rho?
+! TODO: Dissipation in rho? Do we need dissipation at large scale?
 do i = 1, N
     kx3 = kx(i)**3
     do j = 1, Nh
         k4 = kd(j,i)*kd(j,i)
         ky3 = ky(j)**3
-        dissip_nu = exp(-(k4*nu +imag*disp*(kx3+ky3))*deltaT)
-        dissip_eta= exp(-(k4*eta+imag*disp*(kx3+ky3))*deltaT)
+        dissip_nu = exp(-(k4*nu  + alpha + imag*disp*(kx3+ky3))*deltaT)
+        dissip_eta= exp(-(k4*eta + alpha + imag*disp*(kx3+ky3))*deltaT)
         rhok(j,i) = rhok(j,i)*dissip_nu
         ukx(j,i) = ukx(j,i)*dissip_nu
         uky(j,i) = uky(j,i)*dissip_nu

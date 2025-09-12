@@ -3,7 +3,7 @@ import matplotlib.pyplot as plt
 
 # --- PARAMETERS TO SET ---
 filename = "STS_Ebxx_x"  # The binary file written by your Fortran code
-N = 256                  # Number of points in ky direction (len(Ebyy(1,:)))
+N = 128                  # Number of points in ky direction (len(Ebyy(1,:)))
 # N = N//2+1
 nt = None                # Set to None to infer from file size
 dtype = np.float64       # Fortran double precision

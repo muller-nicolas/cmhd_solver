@@ -1,7 +1,7 @@
 import matplotlib.pyplot as plt
 import numpy as np
 
-time = 119
+time = 136
 P = np.loadtxt('out_parameter')
 N = int(P[6])
 size=1.#2.*np.pi
@@ -21,11 +21,11 @@ X, Y = np.meshgrid(X, Y)
 
 A=100
 vmin, vmax = -1/A, 1/A
-vmin, vmax = -0.5, 0.5
+vmin, vmax = -0.0001, 0.0001
 fig = plt.figure(figsize=(10,8))
 #im = plt.imshow(Z1, cmap=cm.coolwarm, extent=[0, size, 0, size],
 #    vmin=-1/A, vmax=1/A, interpolation='bicubic')
-im = plt.imshow(Z1, cmap=cm.coolwarm, extent=[0, size, 0, size],
+im = plt.imshow(Z1, cmap=plt.cm.coolwarm, extent=[0, size, 0, size],
     vmin=vmin, vmax=vmax, interpolation='bicubic')
 
 plt.title('$wz(x,y)$')

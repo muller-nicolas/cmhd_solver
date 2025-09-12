@@ -3,6 +3,7 @@
 !  Sébastien Galtier - LPP - Version 8 (July 2025)
 !*********************************************************************
 
+! TODO: Read parameters from file after compilation
 ! TODO: Reduce number of fields (better scalability)
 ! TODO: Pointers for fields in memory (Reduce memory usage)
 ! TODO: handle precision globally (for practical purposes)
@@ -22,14 +23,12 @@ implicit none
 
 double precision Ek(Nh,N)
 double precision t1, t2
-double precision divu, divb, ta, norm, time, timests
+double precision ta, time, timests
 
-double precision :: rho0(N,N), ux0(N,N), uy0(N,N), bx0(N,N), by0(N,N)
-double precision :: rho1(N,N), ux1(N,N), uy1(N,N), bx1(N,N), by1(N,N)
-double precision :: uxdx(N,N), uxdy(N,N), uydx(N,N), uydy(N,N)
-double precision :: bxdy(N,N), bydx(N,N), bxdx(N,N), bydy(N,N)
-
-double precision EU, EB, Erho, Erho2
+! double precision :: rho0(N,N), ux0(N,N), uy0(N,N), bx0(N,N), by0(N,N)
+! double precision :: rho1(N,N), ux1(N,N), uy1(N,N), bx1(N,N), by1(N,N)
+! double precision :: uxdx(N,N), uxdy(N,N), uydx(N,N), uydy(N,N)
+! double precision :: bxdy(N,N), bydx(N,N), bxdx(N,N), bydy(N,N)
 
 double complex :: ukx0(Nh,N), uky0(Nh,N), bkx0(Nh,N), bky0(Nh,N), rhok0(Nh,N)
 double complex :: ukx1(Nh,N), uky1(Nh,N), bkx1(Nh,N), bky1(Nh,N), rhok1(Nh,N)
@@ -88,8 +87,8 @@ end if
 do it = 1, ndeltaT
 
 ! Random forcing in ux0 and uy0
-call RandomF(ukx0)
-call RandomF(uky0)
+call GaussianF(ukx0)
+call GaussianF(uky0)
 
 call RHS(rhok1,ukx1,uky1,bkx1,bky1,nonlinrhok1,nonlinukx1,nonlinuky1,nonlinbkx1,nonlinbky1)
 call check_nan(rhok1) 
@@ -184,31 +183,29 @@ end program CMHD
 SUBROUTINE RandomInit(ukxi,ukyi)
 use parameters
 use fftw_mod
+use spectral_mod
 ! Initial random field spectra
 implicit none
-double precision spectri(Na+1,Na+1), uxtmp(N,N), uytmp(N,N)
+double precision spectri, uxtmp(N,N), uytmp(N,N)
 double precision theta, knc, EU
 double complex :: ukxi(Nh,N), ukyi(Nh,N)
-integer ii, jj
+integer i, j
 
-call srand(seed)
-spectri=0.
+! call srand(seed)
 ukxi=0. 
 ukyi=0. 
-do ii = 1, Na+1
-do jj = 1, Na+1
-knc = (kinj - real(ii-1) - real(jj-1))**4
-spectri(jj,ii) = dexp(-knc*100.)
+do i = 1, N
+    do j = 1, Nh
+        knc = (kinj - real(i-1) - real(j-1))**4
+        spectri = dexp(-knc*100.)
+        theta = rand()*2.*pi
+        ukxi(j,i) = spectri*(cos(theta) + imag*sin(theta))
+        theta = rand()*2.*pi
+        ukyi(j,i) = spectri*(cos(theta) + imag*sin(theta))
+    end do
 end do
-end do
-do ii = 1, Na+1
-do jj = 1, Na+1
-theta = rand()*2.*pi
-ukxi(jj,ii) = spectri(jj,ii)*(cos(theta) + imag*sin(theta))
-theta = rand()*2.*pi
-ukyi(jj,ii) = spectri(jj,ii)*(cos(theta) + imag*sin(theta))
-end do
-end do
+ukxi = kill*ukxi ! Dealiasing
+ukyi = kill*ukyi ! Dealiasing
 call FFT_SP(ukxi,uxtmp)
 call FFT_SP(ukyi,uytmp)
 
@@ -230,29 +227,66 @@ SUBROUTINE RandomF(field)
 use parameters
 use fftw_mod
 implicit none
-double precision spectri(Na+1,Na+1)
-double precision theta, knc
-double complex :: field(Nh,N)
+double complex, intent(inout) :: field(Nh,N)
+double precision spectri
+double precision theta, knc, alpha0
 integer ii, jj
 
 call srand(seed)
-spectri=0.
+alpha0 = 100.
 field=0.
 do ii = 1, Na+1
-do jj = 1, Na+1
-knc = (kinj - real(ii-1) - real(jj-1))**4
-spectri(jj,ii) = dexp(-knc*100.)
-end do
-end do
-do ii = 1, Na+1
-do jj = 1, Na+1
-theta = rand()*2.*pi
-field(jj,ii) = spectri(jj,ii)*(cos(theta) + imag*sin(theta))
-end do
+    do jj = 1, Na+1
+        knc = (kinj - real(ii-1) - real(jj-1))**4
+        spectri = dexp(-knc*alpha0)
+        theta = rand()*2.*pi
+        field(jj,ii) = spectri*(cos(theta) + imag*sin(theta))
+    end do
 end do
 
 RETURN
 END SUBROUTINE RandomF
+
+SUBROUTINE GaussianF(field)
+use parameters
+use fftw_mod
+use spectral_mod
+implicit none
+double complex, intent(inout) :: field(Nh,N)
+double precision phase 
+integer i, j
+
+! TODO: set seed properly
+! integer :: seed_size
+! integer, allocatable :: seed_array(:)
+
+! ! Allocate and set RNG seed
+! call random_seed(size=seed_size)
+! allocate(seed_array(seed_size))
+! seed_array = seed   ! deterministic seed, same numbers each run
+! call random_seed(put=seed_array)
+! deallocate(seed_array)
+
+! call srand(seed)
+! phase = rand()
+! call random_number(phase)
+! print *,phase
+field=0.
+do i = 1, N
+    phase = rand()*2.*pi
+    ! call random_number(phase)
+    phase = phase*2*pi
+    field(1,i) = (cos(phase) + imag*sin(phase))*exp(-.5*((sqrt(kd(1,i))-kinj*dk)/width)**2)
+    do j = 2, Nh
+        phase = rand()*2.*pi
+        field(j,i) = 2*(cos(phase) + imag*sin(phase))*exp(-.5*((sqrt(kd(j,i))-kinj*dk)/width)**2)
+    end do
+end do
+
+field = kill*field ! Dealiasing
+
+RETURN
+END SUBROUTINE GaussianF
 
 !*****************************************************************
 SUBROUTINE energyF(ux,uy,EU)

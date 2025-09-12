@@ -1,15 +1,15 @@
 import matplotlib.pyplot as plt
 import numpy as np
 
-N = 256
+N = 128
 ti = 10 # Bounds of data to process
 tf = -1 # Bounds of data to process
-vmin = -150
-vmax = -50
+vmin = -100
+vmax = -15
 
 cmap = plt.cm.Blues
 
-filename = 'STS_Ebyy_x'
+filename = 'STS_Euxx_x'
 time = np.loadtxt('STS_time')
 Nt = len(time)
 sts = np.fromfile(filename)
@@ -23,7 +23,7 @@ sts = sts[ti:,:]
 T = time[-1] - time[0]
 
 FFF = sts[ti:tf,:]
-FFF[:,0] /= 100 # atenuate kx=0
+# FFF[:,0] /= 100 # atenuate kx=0
 #print(np.max(FFF))
 #print(np.min(FFF))
 #FFF[:,0] = 0 # set kz=0 to 0
@@ -51,13 +51,13 @@ sz = dT // 10
 
 fig, ax = plt.subplots(figsize=(8,5))
 
-plot = ax.imshow(np.log(Omega[OM-sz:OM+sz,:]), extent=(k[0],k[-1],w[OM2-sz],w[OM2+sz]), aspect=0.5, cmap=cmap, vmin=vmin, vmax=vmax)
+plot = ax.imshow(np.log(Omega[OM-sz:OM+sz,:]), extent=(k[0],k[-1],w[OM2-sz],w[OM2+sz]), aspect='auto', cmap=cmap, vmin=vmin, vmax=vmax)
 ax.set_xlabel(r'$k$')
 # ax.set_title(labels[i])
 
 ax.set_ylabel(r'$\omega$')
-ax.set_xlim(left=0, right=N//3-1)
-ax.set_ylim(bottom=-2, top=N//2)
+# ax.set_xlim(left=0, right=N//3-1)
+# ax.set_ylim(bottom=-2, top=N//2)
 #fig.colorbar(plot)
 
 fig.tight_layout()

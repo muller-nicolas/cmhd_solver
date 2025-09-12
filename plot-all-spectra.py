@@ -6,7 +6,7 @@ fig, ax = plt.subplots(1,3,figsize=(15,5), sharex=True, sharey=True, tight_layou
 
 ista = 100
 iend = 109
-iskip = 1
+iskip = 2
 if len(sys.argv)>1:
     iend = int(sys.argv[1])
 
@@ -17,7 +17,6 @@ filenames_rho = [f'out_spectrumrho-1D-{i:03d}' for i in range(ista,iend+1,iskip)
 P = np.loadtxt('out_parameter')
 kmax = int(P[6]/2+1) # kmax
 k = np.linspace(1, kmax, kmax)
-print(k)
 
 def lissage(S,L):
     res = np.copy(S) # duplication des valeurs
@@ -65,15 +64,18 @@ ax[2].set_ylabel(r'$E_{\rho}(k)$')
 
 # plt.grid(True,linestyle=':',which="both")
 ax[0].set_xlim(right=kmax)
-ax[0].set_ylim(1.e-15,1.e-1)
+ax[0].set_ylim(1.e-20,1.e-1)
 
 ax[0].axvline(kmax*2/3, color='k', linestyle='--')
 ax[1].axvline(kmax*2/3, color='k', linestyle='--')
 ax[2].axvline(kmax*2/3, color='k', linestyle='--')
 
-ax[0].plot(k[2:], (k[2:]/k[2])**(-6.)*Ru[2], color='k', ls='--',linewidth=1.)
-ax[1].plot(k[2:], (k[2:]/k[2])**(-6.)*Rb[2], color='k', ls='--',linewidth=1.)
-ax[2].plot(k[2:], (k[2:]/k[2])**(-6.)*Rr[2], color='k', ls='--',linewidth=1.)
+ksta = 1
+kend = kmax
+x = k[ksta:kmax]
+ax[0].plot(x, (x/x[0])**(-6.)*Ru[ksta], color='k', ls='--',linewidth=1.)
+ax[1].plot(x, (x/x[0])**(-6.)*Rb[ksta], color='k', ls='--',linewidth=1.)
+ax[2].plot(x, (x/x[0])**(-6.)*Rr[ksta], color='k', ls='--',linewidth=1.)
 
 ax[0].legend(ncol=2)
 
