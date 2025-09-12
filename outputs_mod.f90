@@ -36,17 +36,17 @@ close(45)
 END SUBROUTINE save_energy
 
 !*****************************************************************
-SUBROUTINE compute_energy(rho,ux,uy,bx,by,EU,EB,Erho,Erho2,divu,divb)
+SUBROUTINE compute_energy(rhok,ukx,uky,bkx,bky,EU,EB,Erho,Erho2,divu,divb)
 !***********compute energies
 use parameters
 use fftw_mod
 implicit none
-double complex, intent(in) :: rho(Nh,N), ux(Nh,N), uy(Nh,N), bx(Nh,N), by(Nh,N)
+double complex, intent(in) :: rhok(Nh,N), ukx(Nh,N), uky(Nh,N), bkx(Nh,N), bky(Nh,N)
 double precision, intent(out) :: EU, EB, Erho, Erho2, divu, divb
-double complex ukxdx(Nh,N), ukydy(Nh,N), bkxdx(Nh,N), bkydy(Nh,N)
-double precision uxdx(N,N), uydy(N,N), bxdx(N,N), bydy(N,N)
+double complex tmpk1(Nh,N), tmpk2(Nh,N) 
+double precision tmp1(N,N), tmp2(N,N) 
 double precision norm, norm2
-integer ii, jj
+integer i, j
 
 norm = 1./real(N*N)
 norm2 = norm*norm
@@ -57,28 +57,18 @@ Erho2 = 0.
 divu = 0.
 divb = 0.
 
-call derivex(ux, ukxdx)
-call derivey(uy, ukydy)
-call derivex(bx, bkxdx)
-call derivey(bx, bkydy)
-
-call FFT_SP(ukxdx,uxdx)
-call FFT_SP(ukydy,uydy)
-call FFT_SP(bkxdx,bxdx)
-call FFT_SP(bkydy,bydy)
-
 ! TODO: Erho is not properly computed
-do ii = 1, N
-EU = EU + 0.5*(abs(ux(1,ii))**2 + abs(uy(1,ii))**2)
-EB = EB + 0.5*(abs(bx(1,ii))**2 + abs(by(1,ii))**2)
-Erho = Erho + 0.5*(1.d0+abs(rho(1,ii)))*(abs(ux(1,ii))**2 + abs(uy(1,ii))**2) ! CHECK
-Erho2 = Erho2 + abs(rho(1,ii))
-do jj = 2, Nh
-EU = EU + (abs(ux(jj,ii))**2 + abs(uy(jj,ii))**2)
-EB = EB + (abs(bx(jj,ii))**2 + abs(by(jj,ii))**2)
-Erho = Erho + (1.d0+abs(rho(jj,ii)))*(abs(ux(jj,ii))**2 + abs(uy(jj,ii))**2)
-Erho2 = Erho2 + abs(rho(jj,ii))
-end do
+do i = 1, N
+    EU = EU + 0.5*(abs(ukx(1,i))**2 + abs(uky(1,i))**2)
+    EB = EB + 0.5*(abs(bkx(1,i))**2 + abs(bky(1,i))**2)
+    Erho = Erho + 0.5*(1.d0+abs(rhok(1,i)))*(abs(ukx(1,i))**2 + abs(uky(1,i))**2) ! CHECK
+    Erho2 = Erho2 + abs(rhok(1,i))
+    do j = 2, Nh
+        EU = EU + (abs(ukx(j,i))**2 + abs(uky(j,i))**2)
+        EB = EB + (abs(bkx(j,i))**2 + abs(bky(j,i))**2)
+        Erho = Erho + (1.d0+abs(rhok(j,i)))*(abs(ukx(j,i))**2 + abs(uky(j,i))**2)
+        Erho2 = Erho2 + abs(rhok(j,i))
+    end do
 end do
 
 EU = EU*norm2
@@ -86,12 +76,17 @@ EB = EB*norm2
 Erho = Erho*norm2
 Erho2 = Erho2*norm2
 
+call divergence(ukx,uky,tmpk1)
+call divergence(bkx,bky,tmpk2)
+call FFT_SP(tmpk1,tmp1)
+call FFT_SP(tmpk2,tmp2)
+
 ! Divergences in real space
-do ii = 1,N
-do jj = 1,N
-divu = divu + uxdx(jj,ii) + uydy(jj,ii)
-divb = divb + bxdx(jj,ii) + bydy(jj,ii)
-end do
+do i = 1,N
+    do j = 1,N
+        divu = divu + tmp1(j,i)
+        divb = divb + tmp2(j,i)
+    end do
 end do
 
 divu = divu*norm
@@ -106,13 +101,13 @@ use parameters
 !***********compute energy
 implicit none
 double precision EU, ux(N,N), uy(N,N)
-integer ii, jj
+integer i, j
 
 EU = 0.
-do ii = 1, N
-do jj = 1, N
-EU = EU + (ux(jj,ii)**2 + uy(jj,ii)**2)
-end do
+do i = 1, N
+    do j = 1, N
+        EU = EU + 0.5*(ux(j,i)**2 + uy(j,i)**2)
+    end do
 end do
 EU = EU/real(N*N)
 
@@ -155,10 +150,8 @@ END SUBROUTINE save_spectra
 SUBROUTINE save_fields(rhok,ukx,uky,bkx,bky,istore_fields)
 double complex, intent(in) :: rhok(Nh,N), ukx(Nh,N), uky(Nh,N), bkx(Nh,N), bky(Nh,N)
 integer, intent(inout) :: istore_fields
-double complex :: ukydx(Nh,N), ukxdy(Nh,N), bkydx(Nh,N), bkxdy(Nh,N) 
-double complex :: ukxdx(Nh,N), ukydy(Nh,N), bkxdx(Nh,N), bkydy(Nh,N) 
-double precision :: uydx(N,N), uxdy(N,N), bydx(N,N), bxdy(N,N), rho(N,N)
-double precision :: uxdx(N,N), uydy(N,N), bxdx(N,N), bydy(N,N) 
+double complex :: tmpk(Nh,N)
+double precision :: tmp(N,N)
 
 character (len=14) :: animO='out_rho-2D-'
 character (len=13) :: animW='out_wz-2D-'
@@ -167,45 +160,37 @@ character (len=15) :: animdiv='out_divb-2D-'
 character (len=15) :: animdivu='out_divu-2D-'
 
 write(animO(12:14),'(i3)') istore_fields
-call FFT_SP(rhok,rho)
+call FFT_SP(rhok,tmp)
 open(30, file = animO, status='replace', form='unformatted', access='stream')
-write(30) rho(:,:)
+write(30) tmp(:,:)
 close(30)
 !
 write(animW(11:13),'(i3)') istore_fields
-call derivex(uky,ukydx)
-call derivey(ukx,ukxdy)
-call FFT_SP(ukydx,uydx)
-call FFT_SP(ukxdy,uxdy)
+call curl(ukx,uky,tmpk)
+call FFT_SP(tmpk,tmp)
 open(30, file = animW, status='replace', form='unformatted', access='stream')
-write(30) uydx(:,:)-uxdy(:,:)
+write(30) tmp(:,:)
 close(30)
 !
-call derivex(bky,bkydx)
-call derivey(bkx,bkxdy)
-call FFT_SP(bkydx,bydx)
-call FFT_SP(bkxdy,bxdy)
+call curl(bkx,bky,tmpk)
+call FFT_SP(tmpk,tmp)
 write(animJ(11:13),'(i3)') istore_fields
 open(30, file = animJ, status='replace', form='unformatted', access='stream')
-write(30) bydx(:,:)-bxdy(:,:)
+write(30) tmp(:,:)
 close(30)
 !
 write(animdiv(13:15),'(i3)') istore_fields
-call derivex(bkx,bkxdx)
-call derivey(bky,bkydy)
-call FFT_SP(bkxdx,bxdx)
-call FFT_SP(bkydy,bydy)
+call divergence(bkx,bky,tmpk)
+call FFT_SP(tmpk,tmp)
 open(30, file = animdiv, status='replace', form='unformatted', access='stream')
-write(30) bxdx(:,:)+bydy(:,:)
+write(30) tmp(:,:)
 close(30)
 !
 write(animdivu(13:15),'(i3)') istore_fields
-call derivex(ukx,ukxdx)
-call derivey(uky,ukydy)
-call FFT_SP(ukxdx,uxdx)
-call FFT_SP(ukydy,uydy)
+call divergence(ukx,uky,tmpk)
+call FFT_SP(tmpk,tmp)
 open(30, file = animdivu, status='replace', form='unformatted', access='stream')
-write(30) uxdx(:,:)+uydy(:,:)
+write(30) tmp(:,:)
 close(30)
 istore_fields = istore_fields + 1
 

@@ -1,9 +1,9 @@
 # Makefile
 # Compiler and flags
 FC = gfortran
-FFLAGS = -O3
+FFLAGS = -O3 -fopenmp
 LDFLAGS = -L/usr/local/Cellar/fftw/3.3.10_1/lib -I/usr/local/Cellar/fftw/3.3.10_1/include
-LIBS = -lfftw3 # -lfftw3_threads
+LIBS = -lfftw3 -lfftw3_threads -lm
 PYTHON = /usr/local/opt/python@3.9/bin/python3.9
 
 # Adastra
@@ -14,7 +14,7 @@ PYTHON = /usr/local/opt/python@3.9/bin/python3.9
 all: CMHD2D
 
 clean:
-	rm -f out_* *.mod STS* restart-* *.exe 
+	rm -f out_* *.mod STS* restart-* # *.exe 
 
 plot_spectra: run_spectrum1 run_spectrum2 run_spectrum3
 

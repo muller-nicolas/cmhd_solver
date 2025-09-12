@@ -1,5 +1,6 @@
 module FFTW_mod
 use, intrinsic :: iso_c_binding
+!$use omp_lib
 use parameters
 implicit none
 include "fftw3.f"
@@ -7,16 +8,20 @@ include "fftw3.f"
 public
 
 integer (kind=8) :: plan_for, plan_back
-! integer :: N, Nh
 
 save
 contains
 
 SUBROUTINE init_fftw
-! integer, intent(in) :: N, Nh
 double precision :: aa(N,N)
 double complex :: bb(Nh,N)
+integer :: void
 
+! Initialize FFTW threading
+call dfftw_init_threads(void)
+call dfftw_plan_with_nthreads(nthreads)
+
+! Create plans
 call dfftw_plan_dft_r2c_2d_(plan_for, N, N, aa, bb, FFTW_MEASURE)
 call dfftw_plan_dft_c2r_2d_(plan_back, N, N, bb, aa, FFTW_MEASURE)
 
@@ -48,6 +53,7 @@ END SUBROUTINE FFT_SP
 SUBROUTINE end_fftw
 call dfftw_destroy_plan(plan_back)
 call dfftw_destroy_plan(plan_for)
+call dfftw_cleanup_threads()
 END SUBROUTINE end_fftw
 
 END MODULE FFTW_mod

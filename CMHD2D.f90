@@ -4,15 +4,16 @@
 !*********************************************************************
 
 ! TODO: Read parameters from file after compilation
-! TODO: Reduce number of fields (better scalability)
 ! TODO: Pointers for fields in memory (Reduce memory usage)
 ! TODO: handle precision globally (for practical purposes)
-! TODO: Parallelisation: MPI, openMP or GPU
+! TODO: Parallelisation: GPU
+! TODO: continue openMP
 ! TODO: RK4 (Numerical precision)
 
 Program CMHD
 
 use, intrinsic :: iso_c_binding
+!$use omp_lib
 use parameters
 use fftw_mod
 use spectral_mod
@@ -23,18 +24,22 @@ implicit none
 
 double precision Ek(Nh,N)
 double precision t1, t2
-double precision ta, time, timests
+double precision ta, time, timests, phase
 
 double complex :: ukx0(Nh,N), uky0(Nh,N), bkx0(Nh,N), bky0(Nh,N), rhok0(Nh,N)
 double complex :: ukx1(Nh,N), uky1(Nh,N), bkx1(Nh,N), bky1(Nh,N), rhok1(Nh,N)
 double complex :: ukx2(Nh,N), uky2(Nh,N), bkx2(Nh,N), bky2(Nh,N), rhok2(Nh,N)
 double complex :: nonlinrhok0(Nh,N), nonlinukx0(Nh,N), nonlinuky0(Nh,N), nonlinbkx0(Nh,N), nonlinbky0(Nh,N)
 double complex :: nonlinrhok1(Nh,N), nonlinukx1(Nh,N), nonlinuky1(Nh,N), nonlinbkx1(Nh,N), nonlinbky1(Nh,N)
+double complex :: fukx(Nh,N), fuky(Nh,N)
 
-integer i, j, it 
+integer i, j, it, corr
 character (len=11) :: animR='restart-'
 
-call cpu_time(time=t1)
+call omp_set_num_threads(nthreads)
+
+! call cpu_time(time=t1)
+t1 = omp_get_wtime()
 
 !**************Initialization
 
@@ -76,22 +81,37 @@ read(66) nonlinrhok1(:,:),nonlinukx1(:,:),nonlinuky1(:,:),nonlinbkx1(:,:),nonlin
 close(66)
 end if
 
+! Initialize forcing in ux0 and uy0
+! call GaussianF(ukx0)
+! call GaussianF(uky0)
+call RandomF(fukx)
+call RandomF(fuky)
+corr = corr0/deltaT
+
 !************************************************************************
 !*****Time evolution: Adams-Bashforth
 !*****************************  Main loop  ******************************
 do it = 1, ndeltaT
 
-! Random forcing in ux0 and uy0
-call GaussianF(ukx0)
-call GaussianF(uky0)
+if (mod(it,corr).eq.0) then
+    do i=1,N
+        do j=1,Nh
+            phase = 2*pi*rand()
+            fukx(j,i) = fukx(j,i) * (cos(phase) + imag*sin(phase))
+            phase = 2*pi*rand()
+            fuky(j,i) = fuky(j,i) * (cos(phase) + imag*sin(phase))
+        end do
+    end do
+end if
+
 
 call RHS(rhok1,ukx1,uky1,bkx1,bky1,nonlinrhok1,nonlinukx1,nonlinuky1,nonlinbkx1,nonlinbky1)
 call check_nan(rhok1) 
 
 ! Adams-Bashford method
 rhok2 = rhok1 + deltaT*(1.5*nonlinrhok1 - 0.5*nonlinrhok0)
-ukx2  = ukx1  + deltaT*(1.5*nonlinukx1  - 0.5*nonlinukx0) + ukx0*off
-uky2  = uky1  + deltaT*(1.5*nonlinuky1  - 0.5*nonlinuky0) + uky0*off
+ukx2  = ukx1  + deltaT*(1.5*nonlinukx1  - 0.5*nonlinukx0) + fukx*off
+uky2  = uky1  + deltaT*(1.5*nonlinuky1  - 0.5*nonlinuky0) + fuky*off
 bkx2  = bkx1  + deltaT*(1.5*nonlinbkx1  - 0.5*nonlinbkx0)
 bky2  = bky1  + deltaT*(1.5*nonlinbky1  - 0.5*nonlinbky0)
 
@@ -163,7 +183,8 @@ close(30)
 
 call end_fftw ! Deallocate plans
 
-call cpu_time(time=t2)
+! call cpu_time(time=t2)
+t2 = omp_get_wtime()
 write(*,*) "cpu time", t2-t1
 
 print *, 'OK'
@@ -218,26 +239,58 @@ END SUBROUTINE RandomInit
 !*****************************************************************
 ! Random forcing spectrum
 !*****************************************************************
+! SUBROUTINE RandomF(field)
+! use parameters
+! use fftw_mod
+! implicit none
+! double complex, intent(inout) :: field(Nh,N)
+! double precision spectri
+! double precision theta, knc, alpha0
+! integer ii, jj
+
+! call srand(seed)
+! alpha0 = 100.
+! field=0.
+! do ii = 1, Na+1
+!     do jj = 1, Na+1
+!         knc = (kinj - real(ii-1) - real(jj-1))**4
+!         spectri = dexp(-knc*alpha0)
+!         theta = rand()*2.*pi
+!         field(jj,ii) = spectri*(cos(theta) + imag*sin(theta))
+!     end do
+! end do
+
+! RETURN
+! END SUBROUTINE RandomF
+
 SUBROUTINE RandomF(field)
 use parameters
 use fftw_mod
+use spectral_mod
 implicit none
 double complex, intent(inout) :: field(Nh,N)
-double precision spectri
-double precision theta, knc, alpha0
-integer ii, jj
+double precision phase, kmn, kmx
+integer i, j
 
-call srand(seed)
-alpha0 = 100.
+! kmn = ((kinj - 10.)*dk)**2
+kmn = dk**2
+kmx = (kinj*dk)**2
 field=0.
-do ii = 1, Na+1
-    do jj = 1, Na+1
-        knc = (kinj - real(ii-1) - real(jj-1))**4
-        spectri = dexp(-knc*alpha0)
-        theta = rand()*2.*pi
-        field(jj,ii) = spectri*(cos(theta) + imag*sin(theta))
+do i = 1, N
+    phase = 2*pi*rand()
+    ! phase = phase*2*pi
+    if ((kd(1,i).le.kmx).and.(kd(1,i).ge.kmn)) then
+        field(1,i) = (cos(phase) + imag*sin(phase)) / sqrt(kd(1,i))
+    endif
+    do j = 2, Nh
+        phase = 2*pi*rand()
+        if ((kd(j,i).le.kmx).and.(kd(j,i).ge.kmn)) then
+            field(j,i) = 2*(cos(phase) + imag*sin(phase)) / sqrt(kd(j,i))
+        endif
     end do
 end do
+
+field = kill*field ! Dealiasing
 
 RETURN
 END SUBROUTINE RandomF
@@ -266,15 +319,14 @@ integer i, j
 ! phase = rand()
 ! call random_number(phase)
 ! print *,phase
-field=0.
 do i = 1, N
-    phase = rand()*2.*pi
+    phase = 2*pi*rand()
     ! call random_number(phase)
-    phase = phase*2*pi
-    field(1,i) = (cos(phase) + imag*sin(phase))*exp(-.5*((sqrt(kd(1,i))-kinj*dk)/width)**2)
+    ! phase = phase*2*pi
+    field(1,i) = (cos(phase) + imag*sin(phase))*exp(-.5*((sqrt(kd(1,i))-kinj*dk)/(width*dk))**2)
     do j = 2, Nh
-        phase = rand()*2.*pi
-        field(j,i) = 2*(cos(phase) + imag*sin(phase))*exp(-.5*((sqrt(kd(j,i))-kinj*dk)/width)**2)
+        phase = 2*pi*rand()
+        field(j,i) = 2*(cos(phase) + imag*sin(phase))*exp(-.5*((sqrt(kd(j,i))-kinj*dk)/(width*dk))**2)
     end do
 end do
 

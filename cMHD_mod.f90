@@ -1,6 +1,7 @@
 MODULE cMHD_mod
 
-    use, intrinsic :: iso_c_binding
+use, intrinsic :: iso_c_binding
+!$use omp_lib
 use parameters
 use fftw_mod
 use adaptive_mod
@@ -27,11 +28,11 @@ call RHS5(ukx,uky,bkx,bky,nonlinbky)
 ! print *, "rho: ", sum(abs(nonlinrhok))
 
 ! Dealiasing
-nonlinrhok = kill * nonlinrhok
-nonlinukx  = kill * nonlinukx
-nonlinuky  = kill * nonlinuky
-nonlinbkx  = kill * nonlinbkx
-nonlinbky  = kill * nonlinbky
+! nonlinrhok = kill * nonlinrhok
+! nonlinukx  = kill * nonlinukx
+! nonlinuky  = kill * nonlinuky
+! nonlinbkx  = kill * nonlinbkx
+! nonlinbky  = kill * nonlinbky
 
 END SUBROUTINE RHS
 
@@ -107,8 +108,6 @@ call FFT_SP(tmpk1,tmp2)
 tmp1 = tmp1*tmp2 
 call FFT_PS(tmp1,tmpk1)
 nonlinukx = nonlinukx - tmpk1
-
-! nonlinukx = nonlinukx - (tmpk1 + tmpk2 + tmpk3)
 
 END SUBROUTINE RHS2
 
@@ -252,6 +251,7 @@ integer :: i,j
 ! Implicit method for dissipation term
 ! Hypoviscosity (bilaplacian) + dispersion
 ! TODO: Dissipation in rho? Do we need dissipation at large scale?
+!$omp parallel do private(i,j,kx3,ky3,k4,dissip_nu,dissip_eta) 
 do i = 1, N
     kx3 = kx(i)**3
     do j = 1, Nh

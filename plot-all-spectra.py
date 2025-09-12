@@ -6,7 +6,7 @@ fig, ax = plt.subplots(1,3,figsize=(15,5), sharex=True, sharey=True, tight_layou
 
 ista = 100
 iend = 109
-iskip = 2
+iskip = 1
 if len(sys.argv)>1:
     iend = int(sys.argv[1])
 
@@ -15,6 +15,7 @@ filenames_EB = [f'out_spectrumEB-1D-{i:03d}' for i in range(ista,iend+1,iskip)]
 filenames_rho = [f'out_spectrumrho-1D-{i:03d}' for i in range(ista,iend+1,iskip)]
 
 P = np.loadtxt('out_parameter')
+kinj = P[3]
 kmax = int(P[6]/2+1) # kmax
 k = np.linspace(1, kmax, kmax)
 
@@ -66,9 +67,12 @@ ax[2].set_ylabel(r'$E_{\rho}(k)$')
 ax[0].set_xlim(right=kmax)
 ax[0].set_ylim(1.e-20,1.e-1)
 
-ax[0].axvline(kmax*2/3, color='k', linestyle='--')
-ax[1].axvline(kmax*2/3, color='k', linestyle='--')
-ax[2].axvline(kmax*2/3, color='k', linestyle='--')
+# ax[0].axvline(kmax*2/3, color='k', linestyle='--')
+# ax[1].axvline(kmax*2/3, color='k', linestyle='--')
+# ax[2].axvline(kmax*2/3, color='k', linestyle='--')
+ax[0].axvline(kinj, color='k', linestyle='--')
+ax[1].axvline(kinj, color='k', linestyle='--')
+ax[2].axvline(kinj, color='k', linestyle='--')
 
 ksta = 1
 kend = kmax
