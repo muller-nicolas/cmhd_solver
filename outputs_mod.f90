@@ -1,5 +1,6 @@
 MODULE outputs
 use, intrinsic :: iso_c_binding
+use omp_lib
 use parameters
 use fftw_mod
 use adaptive_mod
@@ -49,6 +50,7 @@ integer i, j
 norm = 1.0d0/real(N*N*N*N)
 Eout = 0.0d0
 
+!$omp parallel do private(i,j) reduction(+:Eout)
 do i = 1, N
     Eout = Eout + 0.5*(abs(Akx(1,i))**2 + abs(Aky(1,i))**2)
     do j = 2, Nh-1
@@ -84,6 +86,7 @@ divu = 0.
 divb = 0.
 
 ! TODO: Erho is not properly computed
+!$omp parallel do private(i,j) reduction(+:EU,EB,Erho,Erho2)
 do i = 1, N
     EU = EU + (abs(ukx(1,i))**2 + abs(uky(1,i))**2)
     EB = EB + (abs(bkx(1,i))**2 + abs(bky(1,i))**2)
@@ -112,6 +115,7 @@ call FFT_SP(tmpk1,tmp1)
 call FFT_SP(tmpk2,tmp2)
 
 ! Divergences in real space
+!$omp parallel do private(i,j) reduction(+:divu,divb)
 do i = 1,N
     do j = 1,N
         divu = divu + tmp1(j,i)
@@ -134,6 +138,7 @@ double precision EU, ux(N,N), uy(N,N)
 integer i, j
 
 EU = 0.
+!$omp parallel do private(i,j) reduction(+:EU)
 do i = 1, N
     do j = 1, N
         EU = EU + 0.5*(ux(j,i)**2 + uy(j,i)**2)

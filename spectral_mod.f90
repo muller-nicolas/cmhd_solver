@@ -1,5 +1,4 @@
 MODULE spectral_mod
-
 use, intrinsic :: iso_c_binding
 use omp_lib
 use parameters
@@ -32,7 +31,7 @@ end do
 
 kmax = real(N)/3.*dk
 kill(:,:) = 1.
-!!!$omp parallel do private(i, j, ks) shared(kd, kill, kmax, N, Nh)
+!$omp parallel do private(i, j, ks) 
 do i=1,N
     do j=1,Nh
         ks = sqrt(kd(j,i))
@@ -117,6 +116,7 @@ double complex, intent(in) :: Akx(Nh,N), Aky(Nh,N)
 integer i, j, k 
 
 spec1d = 0.
+!$omp parallel do private(i,j,k) reduction(+:spec1d)
 do i = 1, N
     k = int(sqrt(kd(1,i))/dk+0.5)
     if (k .le. Nh) then
@@ -125,6 +125,7 @@ do i = 1, N
     do j = 2, Nh
         k = int(sqrt(kd(j,i))/dk+0.5)
         if (k .le. Nh) then
+            !$omp atomic
             spec1d(k) = spec1d(k) + 2*(abs(Akx(j,i))**2 + abs(Aky(j,i))**2)
         end if
     end do
@@ -142,6 +143,7 @@ double complex, intent(in) :: rhok(Nh,N)
 integer i, j, k 
 
 spec1d = 0.
+!$omp parallel do private(i,j,k) reduction(+:spec1d)
 do i = 1, N
     k = int(sqrt(kd(1,i))/dk+0.5)
     if (k .le. Nh) then
@@ -150,6 +152,7 @@ do i = 1, N
     do j = 2, Nh
         k = int(sqrt(kd(j,i))/dk+0.5)
         if (k .le. Nh) then
+            !$omp atomic
             spec1d(k) = spec1d(k) + 2*(abs(rhok(j,i))**2)
         end if
     end do

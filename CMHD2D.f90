@@ -13,7 +13,7 @@
 Program CMHD
 
 use, intrinsic :: iso_c_binding
-!$use omp_lib
+use omp_lib
 use parameters
 use fftw_mod
 use spectral_mod
@@ -40,7 +40,9 @@ double complex :: fukx(Nh,N), fuky(Nh,N)
 integer i, j, it, corr
 character (len=11) :: animR='restart-'
 
+! nthreads = omp_get_max_threads()
 call omp_set_num_threads(nthreads)
+print *,"Using",nthreads,"threads"
 
 ! call cpu_time(time=t1)
 t1 = omp_get_wtime()
@@ -96,6 +98,7 @@ corr = corr0/deltaT
 do it = 1, ndeltaT
 
 if (mod(it,corr).eq.0) then
+    !$omp parallel do private(i,j,phase)
     do i=1,N
         do j=1,Nh
             phase = 2*pi*rand()
@@ -243,11 +246,11 @@ write(30) nonlinrhok0(:,:),nonlinukx0(:,:),nonlinuky0(:,:),nonlinbkx0(:,:),nonli
 write(30) nonlinrhok1(:,:),nonlinukx1(:,:),nonlinuky1(:,:),nonlinbkx1(:,:),nonlinbky1(:,:)
 close(30)
 
-call end_fftw ! Deallocate plans
 
 ! call cpu_time(time=t2)
 t2 = omp_get_wtime()
 write(*,*) "cpu time", t2-t1
+call end_fftw ! Deallocate plans
 
 print *, 'OK'
 end program CMHD
@@ -259,9 +262,11 @@ end program CMHD
 
 !*****************************************************************
 SUBROUTINE RandomInit(ukxi,ukyi)
+use omp_lib
 use parameters
 use fftw_mod
 use spectral_mod
+use outputs
 ! Initial random field spectra
 implicit none
 double precision uxtmp(N,N), uytmp(N,N)
@@ -273,6 +278,7 @@ kmn = dk**2
 kmx = (kinj*dk)**2
 ukxi=0.
 ukyi=0.
+!$omp parallel do private(i,j,phase)
 do i = 1, N
     if ((kd(1,i).le.kmx).and.(kd(1,i).ge.kmn)) then
         phase = 2*pi*rand()
@@ -350,6 +356,7 @@ END SUBROUTINE RandomInit
 ! END SUBROUTINE RandomF
 
 SUBROUTINE RandomF(Akx,Aky)
+use omp_lib
 use parameters
 use fftw_mod
 use spectral_mod
@@ -363,6 +370,7 @@ kmn = dk**2
 kmx = (kinj*dk)**2
 Akx=0.
 Aky=0.
+!$omp parallel do private(i,j,phase)
 do i = 1, N
     phase = 2*pi*rand()
     if ((kd(1,i).le.kmx).and.(kd(1,i).ge.kmn)) then
@@ -403,6 +411,7 @@ RETURN
 END SUBROUTINE RandomF
 
 SUBROUTINE GaussianF(Akx,Aky)
+use omp_lib
 use parameters
 use fftw_mod
 use spectral_mod
@@ -427,6 +436,7 @@ integer i, j
 ! phase = rand()
 ! call random_number(phase)
 ! print *,phase
+!$omp parallel do private(i,j,phase)
 do i = 1, N
     phase = 2*pi*rand()
     Akx(1,i) = (cos(phase) + imag*sin(phase))*exp(-.5*((sqrt(kd(1,i))/dk-kinj)/(width))**2)
@@ -455,25 +465,3 @@ RETURN
 END SUBROUTINE GaussianF
 
 !*****************************************************************
-SUBROUTINE energyF(ux,uy,EU)
-use parameters
-!***********compute energy
-implicit none
-double precision EU, ux(N,N), uy(N,N)
-integer ii, jj
-
-EU = 0.
-do ii = 1, N
-do jj = 1, N
-EU = EU + (ux(jj,ii)**2 + uy(jj,ii)**2)
-end do
-end do
-EU = EU/real(N*N)
-
-RETURN
-END SUBROUTINE energyF
-
-!*****************************************************************
-
-
-

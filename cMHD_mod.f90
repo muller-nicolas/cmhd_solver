@@ -1,7 +1,6 @@
 MODULE cMHD_mod
-
 use, intrinsic :: iso_c_binding
-!$use omp_lib
+use omp_lib
 use parameters
 use fftw_mod
 use adaptive_mod

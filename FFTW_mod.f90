@@ -1,6 +1,6 @@
 module FFTW_mod
 use, intrinsic :: iso_c_binding
-!$use omp_lib
+use omp_lib
 use parameters
 implicit none
 include "fftw3.f"

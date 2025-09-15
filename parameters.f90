@@ -5,7 +5,7 @@ public
 integer, parameter :: N = 128
 integer, parameter :: Nh = N/2+1
 integer, parameter :: Na = N/3  ! partie entière
-integer, parameter :: nthreads = 4  ! partie entière
+integer :: nthreads = 4  ! partie entière
 double precision, parameter :: deltaT0 = 5.d-3
 ! double precision, parameter :: deltaTi = deltaT0/10.d0
 double precision, parameter :: nu0  = 1.d-7 ! viscosity
@@ -14,10 +14,10 @@ double precision :: eta = nu0 ! magnetic viscosity
 
 integer :: istore_sp = 100
 integer :: istore_fields = 100
-integer, parameter :: ndeltaT = 50000
-integer, parameter :: inrj = 500
-integer, parameter :: ispec = 5000  !*********must be a multiple of inrj
-integer, parameter :: ifields = 5000  !*********must be a multiple of inrj
+integer, parameter :: ndeltaT = 100
+integer, parameter :: inrj = 100
+integer, parameter :: ispec = 100  !*********must be a multiple of inrj
+integer, parameter :: ifields = 100  !*********must be a multiple of inrj
 ! integer :: irestart = 1000
 double precision, parameter :: kinj = 3.
 double precision, parameter :: disp = 0.d-2  ! without dispersion => 0.d0
