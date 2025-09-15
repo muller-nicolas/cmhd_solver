@@ -164,7 +164,6 @@ SUBROUTINE WriteSpatioTemporalSpectrum(rhok, ukx, uky, bkx, bky, time)
 double complex :: rhok(Nh,N), ukx(Nh,N), uky(Nh,N), bkx(Nh,N), bky(Nh,N)
 double precision :: time, Euxx(Nh,N), Euyy(Nh,N), Ebxx(Nh,N), Ebyy(Nh,N)
 integer :: uSTS=80
-logical :: exist
 
 character (len=11) :: sts_time='STS_time'
 character (len=15) :: sts_Euxx_x='STS_Euxx_x'
@@ -175,95 +174,81 @@ character (len=15) :: sts_Ebxx_x='STS_Ebxx_x'
 character (len=15) :: sts_Ebxx_y='STS_Ebxx_y'
 character (len=15) :: sts_Ebyy_x='STS_Ebyy_x'
 character (len=15) :: sts_Ebyy_y='STS_Ebyy_y'
-! character (len=11) :: sts_uxkx='STS_uxkx'
-! character (len=11) :: sts_uxky='STS_uxky'
-! character (len=11) :: sts_uykx='STS_uykx'
-! character (len=11) :: sts_uyky='STS_uyky'
-! character (len=11) :: sts_bxkx='STS_bxkx'
-! character (len=11) :: sts_bxky='STS_bxky'
-! character (len=11) :: sts_bykx='STS_bykx'
-! character (len=11) :: sts_byky='STS_byky'
-! character (len=12) :: sts_rhokx='STS_rhokx'
-! character (len=12) :: sts_rhoky='STS_rhoky'
+character (len=11) :: sts_uxkx='STS_uxkx'
+character (len=11) :: sts_uxky='STS_uxky'
+character (len=11) :: sts_uykx='STS_uykx'
+character (len=11) :: sts_uyky='STS_uyky'
+character (len=11) :: sts_bxkx='STS_bxkx'
+character (len=11) :: sts_bxky='STS_bxky'
+character (len=11) :: sts_bykx='STS_bykx'
+character (len=11) :: sts_byky='STS_byky'
+character (len=12) :: sts_rhokx='STS_rhokx'
+character (len=12) :: sts_rhoky='STS_rhoky'
 
 Euxx(:,:) = 0.5*(abs(ukx)**2)
 Euyy(:,:) = 0.5*(abs(uky)**2)
 Ebxx(:,:) = 0.5*(abs(bkx)**2)
 Ebyy(:,:) = 0.5*(abs(bky)**2)
-inquire(file=sts_time, exist=exist)
 
-! if (exist) then
-!     OPEN(30,file=sts_time,status="old",position='append',form='formatted')
-! else
-!     OPEN(30,file=sts_time,status="new",form='formatted')
-! endif
 OPEN(uSTS,file=sts_time,position='append',form='formatted')
 write(uSTS,*) time
 close(uSTS)
-
-! if (exist) then
-!     OPEN(uSTS,file=sts_uxkx,status="old",position='append',form='formatted')
-! else
-!     OPEN(uSTS,file=sts_uxkx,status="new",form='formatted')
-! endif
-
-! TODO: Expand complex conjugates when kx=0
 
 OPEN (uSTS, file=STS_Euxx_x, access='stream', position='append',form='unformatted')
 write(uSTS) Euxx(1,:) ! ky=0
 close(uSTS)
 OPEN (uSTS, file=STS_Euxx_y, access='stream', position='append',form='unformatted')
-write(uSTS) Euxx(:,1) ! ky=0
+write(uSTS) Euxx(:,1) ! kx=0
 close(uSTS)
 OPEN (uSTS, file=STS_Euyy_x, access='stream', position='append',form='unformatted')
 write(uSTS) Euyy(1,:) ! ky=0
 close(uSTS)
 OPEN (uSTS, file=STS_Euyy_y, access='stream', position='append',form='unformatted')
-write(uSTS) Euyy(:,1) ! ky=0
+write(uSTS) Euyy(:,1) ! kx=0
 close(uSTS)
 OPEN (uSTS, file=STS_Ebxx_x, access='stream', position='append',form='unformatted')
 write(uSTS) Ebxx(1,:) ! ky=0
 close(uSTS)
 OPEN (uSTS, file=STS_Ebxx_y, access='stream', position='append',form='unformatted')
-write(uSTS) Ebxx(:,1) ! ky=0
+write(uSTS) Ebxx(:,1) ! kx=0
 close(uSTS)
 OPEN (uSTS, file=STS_Ebyy_x, access='stream', position='append',form='unformatted')
 write(uSTS) Ebyy(1,:) ! ky=0
 close(uSTS)
 OPEN (uSTS, file=STS_Ebyy_y, access='stream', position='append',form='unformatted')
-write(uSTS) Ebyy(:,1) ! ky=0
+write(uSTS) Ebyy(:,1) ! kx=0
 close(uSTS)
 
-! OPEN (uSTS, file=sts_uxkx, access='stream', position='append',form='unformatted')
-! write(uSTS) ukx(1,:) ! ky=0
-! close(uSTS)
-! OPEN (uSTS, file=sts_uxky, access='stream', position='append',form='unformatted')
-! write(uSTS) ukx(:,1) ! kx=0
-! close(uSTS)
-! OPEN (uSTS, file=sts_uykx, access='stream', position='append',form='unformatted')
-! write(uSTS) uky(1,:) !ky=0
-! close(uSTS)
-! OPEN (uSTS, file=sts_uyky, access='stream', position='append',form='unformatted')
-! write(uSTS) uky(:,1) !kx=0
-! close(uSTS)
-! OPEN (uSTS, file=sts_bxkx, access='stream', position='append',form='unformatted')
-! write(uSTS) bkx(1,:) ! ky=0
-! close(uSTS)
-! OPEN (uSTS, file=sts_bxky, access='stream', position='append',form='unformatted')
-! write(uSTS) bkx(:,1) ! kx=0
-! close(uSTS)
-! OPEN (uSTS, file=sts_bykx, access='stream', position='append',form='unformatted')
-! write(uSTS) bky(1,:) !ky=0
-! close(uSTS)
-! OPEN (uSTS, file=sts_byky, access='stream', position='append',form='unformatted')
-! write(uSTS) bky(:,1) !kx=0
-! close(uSTS)
-! OPEN (uSTS, file=sts_rhokx, access='stream', position='append',form='unformatted')
-! write(uSTS) rhok(1,:) !ky=0
-! close(uSTS)
-! OPEN (uSTS, file=sts_rhoky, access='stream', position='append',form='unformatted')
-! write(uSTS) rhok(:,1) !kx=0
-! close(uSTS)
+OPEN (uSTS, file=sts_uxkx, access='stream', position='append',form='unformatted')
+write(uSTS) ukx(1,:) ! ky=0
+close(uSTS)
+OPEN (uSTS, file=sts_uxky, access='stream', position='append',form='unformatted')
+write(uSTS) ukx(:,1) ! kx=0
+close(uSTS)
+OPEN (uSTS, file=sts_uykx, access='stream', position='append',form='unformatted')
+write(uSTS) uky(1,:) !ky=0
+close(uSTS)
+OPEN (uSTS, file=sts_uyky, access='stream', position='append',form='unformatted')
+write(uSTS) uky(:,1) !kx=0
+close(uSTS)
+OPEN (uSTS, file=sts_bxkx, access='stream', position='append',form='unformatted')
+write(uSTS) bkx(1,:) ! ky=0
+close(uSTS)
+OPEN (uSTS, file=sts_bxky, access='stream', position='append',form='unformatted')
+write(uSTS) bkx(:,1) ! kx=0
+close(uSTS)
+OPEN (uSTS, file=sts_bykx, access='stream', position='append',form='unformatted')
+write(uSTS) bky(1,:) !ky=0
+close(uSTS)
+OPEN (uSTS, file=sts_byky, access='stream', position='append',form='unformatted')
+write(uSTS) bky(:,1) !kx=0
+close(uSTS)
+OPEN (uSTS, file=sts_rhokx, access='stream', position='append',form='unformatted')
+write(uSTS) rhok(1,:) !ky=0
+close(uSTS)
+OPEN (uSTS, file=sts_rhoky, access='stream', position='append',form='unformatted')
+write(uSTS) rhok(:,1) !kx=0
+close(uSTS)
 
 END SUBROUTINE WriteSpatioTemporalSpectrum
 

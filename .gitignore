@@ -1,4 +1,6 @@
+.DS_Store
 out_*
+STS_*
 test*
 fort*
 *.o
@@ -11,5 +13,6 @@ run*/
 128/
 old/
 backup/
+figures/
 
 

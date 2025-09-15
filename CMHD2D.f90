@@ -29,8 +29,12 @@ double precision ta, time, timests, phase
 double complex :: ukx0(Nh,N), uky0(Nh,N), bkx0(Nh,N), bky0(Nh,N), rhok0(Nh,N)
 double complex :: ukx1(Nh,N), uky1(Nh,N), bkx1(Nh,N), bky1(Nh,N), rhok1(Nh,N)
 double complex :: ukx2(Nh,N), uky2(Nh,N), bkx2(Nh,N), bky2(Nh,N), rhok2(Nh,N)
+double complex :: ukx3(Nh,N), uky3(Nh,N), bkx3(Nh,N), bky3(Nh,N), rhok3(Nh,N)
+double complex :: ukx4(Nh,N), uky4(Nh,N), bkx4(Nh,N), bky4(Nh,N), rhok4(Nh,N)
 double complex :: nonlinrhok0(Nh,N), nonlinukx0(Nh,N), nonlinuky0(Nh,N), nonlinbkx0(Nh,N), nonlinbky0(Nh,N)
 double complex :: nonlinrhok1(Nh,N), nonlinukx1(Nh,N), nonlinuky1(Nh,N), nonlinbkx1(Nh,N), nonlinbky1(Nh,N)
+double complex :: nonlinrhok2(Nh,N), nonlinukx2(Nh,N), nonlinuky2(Nh,N), nonlinbkx2(Nh,N), nonlinbky2(Nh,N)
+double complex :: nonlinrhok3(Nh,N), nonlinukx3(Nh,N), nonlinuky3(Nh,N), nonlinbkx3(Nh,N), nonlinbky3(Nh,N)
 double complex :: fukx(Nh,N), fuky(Nh,N)
 
 integer i, j, it, corr
@@ -64,11 +68,11 @@ call RandomInit(ukx0,uky0)
 ! Do one iteration of the time-stepping for AB2
 call RHS(rhok0,ukx0,uky0,bkx0,bky0,nonlinrhok0,nonlinukx0,nonlinuky0,nonlinbkx0,nonlinbky0)
 
-rhok1 = rhok0 + deltaTi*nonlinrhok0
-ukx1  = ukx0  + deltaTi*nonlinukx0
-uky1  = uky0  + deltaTi*nonlinuky0
-bkx1  = bkx0  + deltaTi*nonlinbkx0
-bky1  = bky0  + deltaTi*nonlinbky0
+rhok1 = rhok0 + deltaT*nonlinrhok0
+ukx1  = ukx0  + deltaT*nonlinukx0
+uky1  = uky0  + deltaT*nonlinuky0
+bkx1  = bkx0  + deltaT*nonlinbkx0
+bky1  = bky0  + deltaT*nonlinbky0
 end if
 
 !****************** In case of restart the code starts below *************
@@ -82,10 +86,8 @@ close(66)
 end if
 
 ! Initialize forcing in ux0 and uy0
-! call GaussianF(ukx0)
-! call GaussianF(uky0)
-call RandomF(fukx)
-call RandomF(fuky)
+call GaussianF(fukx,fuky)
+! call RandomF(fukx,fuky)
 corr = corr0/deltaT
 
 !************************************************************************
@@ -104,20 +106,73 @@ if (mod(it,corr).eq.0) then
     end do
 end if
 
-
-call RHS(rhok1,ukx1,uky1,bkx1,bky1,nonlinrhok1,nonlinukx1,nonlinuky1,nonlinbkx1,nonlinbky1)
 call check_nan(rhok1) 
 
-! Adams-Bashford method
+
+! ! Runge-Kutta 4 (RK4)
+! call RHS(rhok0,ukx0,uky0,bkx0,bky0,nonlinrhok0,nonlinukx0,nonlinuky0,nonlinbkx0,nonlinbky0)
+! rhok1 = rhok0 + deltaT*nonlinrhok0
+! ukx1  = ukx0  + deltaT*nonlinukx0
+! uky1  = uky0  + deltaT*nonlinuky0
+! bkx1  = bkx0  + deltaT*nonlinbkx0
+! bky1  = bky0  + deltaT*nonlinbky0
+
+
+! call RHS(rhok1,ukx1,uky1,bkx1,bky1,nonlinrhok1,nonlinukx1,nonlinuky1,nonlinbkx1,nonlinbky1)
+! rhok3 = rhok0 + 0.5*deltaT*(nonlinrhok1)
+! ukx3  = ukx0  + 0.5*deltaT*(nonlinukx1)
+! uky3  = uky0  + 0.5*deltaT*(nonlinuky1)
+! bkx3  = bkx0  + 0.5*deltaT*(nonlinbkx1)
+! bky3  = bky0  + 0.5*deltaT*(nonlinbky1)
+
+! call RHS(rhok3,ukx3,uky3,bkx3,bky3,nonlinrhok3,nonlinukx3,nonlinuky3,nonlinbkx3,nonlinbky3)
+! rhok4 = rhok0 + 0.5*deltaT*(nonlinrhok3)
+! ukx4  = ukx0  + 0.5*deltaT*(nonlinukx3)
+! uky4  = uky0  + 0.5*deltaT*(nonlinuky3)
+! bkx4  = bkx0  + 0.5*deltaT*(nonlinbkx3)
+! bky4  = bky0  + 0.5*deltaT*(nonlinbky3)
+
+! call RHS(rhok4,ukx4,uky4,bkx4,bky4,nonlinrhok2,nonlinukx2,nonlinuky2,nonlinbkx2,nonlinbky2)
+! rhok2 = rhok0 + deltaT/6.*(nonlinrhok0 + 2*nonlinrhok1 + 2*nonlinrhok3 + nonlinrhok2)
+! ukx2  = ukx0  + deltaT/6.*( nonlinukx0 + 2*nonlinukx1 + 2*nonlinukx3 + nonlinukx2)
+! uky2  = uky0  + deltaT/6.*( nonlinuky0 + 2*nonlinuky1 + 2*nonlinuky3 + nonlinuky2)
+! bkx2  = bkx0  + deltaT/6.*( nonlinbkx0 + 2*nonlinbkx1 + 2*nonlinbkx3 + nonlinbkx2)
+! bky2  = bky0  + deltaT/6.*( nonlinbky0 + 2*nonlinbky1 + 2*nonlinbky3 + nonlinbky2)
+
+
+
+
+
+! Heun method (RK2)
+! call RHS(rhok0,ukx0,uky0,bkx0,bky0,nonlinrhok0,nonlinukx0,nonlinuky0,nonlinbkx0,nonlinbky0)
+! rhok1 = rhok0 + deltaT*nonlinrhok0
+! ukx1  = ukx0  + deltaT*nonlinukx0
+! uky1  = uky0  + deltaT*nonlinuky0
+! bkx1  = bkx0  + deltaT*nonlinbkx0
+! bky1  = bky0  + deltaT*nonlinbky0
+
+! call RHS(rhok1,ukx1,uky1,bkx1,bky1,nonlinrhok1,nonlinukx1,nonlinuky1,nonlinbkx1,nonlinbky1)
+! rhok2 = rhok0 + 0.5*deltaT*(nonlinrhok0 + nonlinrhok1)
+! ukx2  = ukx0  + 0.5*deltaT*( nonlinukx0 + nonlinukx1)
+! uky2  = uky0  + 0.5*deltaT*( nonlinuky0 + nonlinuky1)
+! bkx2  = bkx0  + 0.5*deltaT*( nonlinbkx0 + nonlinbkx1)
+! bky2  = bky0  + 0.5*deltaT*( nonlinbky0 + nonlinbky1)
+
+
+
+
+! Adams-Bashforth method (AB2)
+call RHS(rhok1,ukx1,uky1,bkx1,bky1,nonlinrhok1,nonlinukx1,nonlinuky1,nonlinbkx1,nonlinbky1)
+
 rhok2 = rhok1 + deltaT*(1.5*nonlinrhok1 - 0.5*nonlinrhok0)
-ukx2  = ukx1  + deltaT*(1.5*nonlinukx1  - 0.5*nonlinukx0) + fukx*off
-uky2  = uky1  + deltaT*(1.5*nonlinuky1  - 0.5*nonlinuky0) + fuky*off
+ukx2  = ukx1  + deltaT*(1.5*nonlinukx1  - 0.5*nonlinukx0) + fukx
+uky2  = uky1  + deltaT*(1.5*nonlinuky1  - 0.5*nonlinuky0) + fuky
 bkx2  = bkx1  + deltaT*(1.5*nonlinbkx1  - 0.5*nonlinbkx0)
 bky2  = bky1  + deltaT*(1.5*nonlinbky1  - 0.5*nonlinbky0)
 
 call dissipation(rhok2,ukx2,uky2,bkx2,bky2)
 
-! Rename variables for saving and use them as initial values for next loop
+! Rename variables for saving and use them as initial values for next loop (AB2)
 rhok1=rhok2
 ukx1=ukx2
 uky1=uky2
@@ -129,6 +184,13 @@ nonlinuky0=nonlinuky1
 nonlinbkx0=nonlinbkx1
 nonlinbky0=nonlinbky1
 
+! Rename variables for saving and use them as initial values for next loop (RK2 and RK4)
+! rhok0=rhok2
+! ukx0=ukx2
+! uky0=uky2
+! bkx0=bkx2
+! bky0=bky2
+
 ! Compute and write energy
 if ( (mod(it,inrj) .eq. 0) ) then
 call save_energy(rhok2,ukx2,uky2,bkx2,bky2)
@@ -138,11 +200,11 @@ write(52,*) time
 close(52)
 
 !****************Adaptive timestep
-! open(53, file = 'out_nu', status = 'new',form='formatted')
+! open(53, file = 'out_nu', position='append', form='formatted')
 ! write(53,*) nu
 ! close(53)
 ! call adaptiveT(ukx2,rhok2,ta)
-! open(51, file = 'out_deltaT', status = 'append',form='formatted')
+! open(51, file = 'out_deltaT', position='append', form='formatted')
 ! write(51,*) ta
 ! close(51)
 ! deltaT = ta*0.2d0 ! condition CFL
@@ -166,7 +228,7 @@ end if
 if (sts .eq. 1) then
     if (mod(it,ists) .eq. 0) then
         timests = timests + dfloat(ists)*deltaT
-        call WriteSpatioTemporalSpectrum(ukx1, uky1, bkx1, bky1, rhok1, timests)
+        call WriteSpatioTemporalSpectrum(ukx2, uky2, bkx2, bky2, rhok2, timests)
     end if
 end if
 
@@ -202,24 +264,46 @@ use fftw_mod
 use spectral_mod
 ! Initial random field spectra
 implicit none
-double precision spectri, uxtmp(N,N), uytmp(N,N)
-double precision theta, knc, EU
+double precision uxtmp(N,N), uytmp(N,N)
+double precision phase, EU, kmn, kmx !, spectri, knc
 double complex :: ukxi(Nh,N), ukyi(Nh,N)
 integer i, j
 
-! call srand(seed)
-ukxi=0. 
-ukyi=0. 
+kmn = dk**2
+kmx = (kinj*dk)**2
+ukxi=0.
+ukyi=0.
 do i = 1, N
-    do j = 1, Nh
-        knc = (kinj - real(i-1) - real(j-1))**4
-        spectri = dexp(-knc*100.)
-        theta = rand()*2.*pi
-        ukxi(j,i) = spectri*(cos(theta) + imag*sin(theta))
-        theta = rand()*2.*pi
-        ukyi(j,i) = spectri*(cos(theta) + imag*sin(theta))
+    if ((kd(1,i).le.kmx).and.(kd(1,i).ge.kmn)) then
+        phase = 2*pi*rand()
+        ukxi(1,i) = (cos(phase) + imag*sin(phase)) / sqrt(kd(1,i))
+        phase = 2*pi*rand()
+        ukyi(1,i) = (cos(phase) + imag*sin(phase)) / sqrt(kd(1,i))
+    endif
+    do j = 2, Nh
+        if ((kd(j,i).le.kmx).and.(kd(j,i).ge.kmn)) then
+            phase = 2*pi*rand()
+            ukxi(j,i) = 2*(cos(phase) + imag*sin(phase)) / sqrt(kd(j,i))
+            phase = 2*pi*rand()
+            ukyi(j,i) = 2*(cos(phase) + imag*sin(phase)) / sqrt(kd(j,i))
+        endif
     end do
 end do
+
+! call srand(seed)
+! ukxi=0. 
+! ukyi=0. 
+! do i = 1, N
+!     do j = 1, Nh
+!         knc = (kinj - real(i-1) - real(j-1))**4
+!         spectri = dexp(-knc*100.)
+!         theta = rand()*2.*pi
+!         ukxi(j,i) = spectri*(cos(theta) + imag*sin(theta))
+!         theta = rand()*2.*pi
+!         ukyi(j,i) = spectri*(cos(theta) + imag*sin(theta))
+!     end do
+! end do
+
 ukxi = kill*ukxi ! Dealiasing
 ukyi = kill*ukyi ! Dealiasing
 call FFT_SP(ukxi,uxtmp)
@@ -232,6 +316,8 @@ uytmp=amp*uytmp/sqrt(EU)
 
 call FFT_PS(uxtmp,ukxi)
 call FFT_PS(uytmp,ukyi)
+ukxi = kill*ukxi ! Dealiasing
+ukyi = kill*ukyi ! Dealiasing
 
 RETURN
 END SUBROUTINE RandomInit
@@ -263,45 +349,67 @@ END SUBROUTINE RandomInit
 ! RETURN
 ! END SUBROUTINE RandomF
 
-SUBROUTINE RandomF(field)
+SUBROUTINE RandomF(Akx,Aky)
 use parameters
 use fftw_mod
 use spectral_mod
+use outputs
 implicit none
-double complex, intent(inout) :: field(Nh,N)
-double precision phase, kmn, kmx
+double complex, intent(inout) :: Akx(Nh,N), Aky(Nh,N)
+double precision phase, kmn, kmx, E
 integer i, j
 
-! kmn = ((kinj - 10.)*dk)**2
 kmn = dk**2
 kmx = (kinj*dk)**2
-field=0.
+Akx=0.
+Aky=0.
 do i = 1, N
     phase = 2*pi*rand()
-    ! phase = phase*2*pi
     if ((kd(1,i).le.kmx).and.(kd(1,i).ge.kmn)) then
-        field(1,i) = (cos(phase) + imag*sin(phase)) / sqrt(kd(1,i))
+        Akx(1,i) = (cos(phase) + imag*sin(phase)) / sqrt(kd(1,i))
     endif
-    do j = 2, Nh
+    phase = 2*pi*rand()
+    if ((kd(1,i).le.kmx).and.(kd(1,i).ge.kmn)) then
+        Aky(1,i) = (cos(phase) + imag*sin(phase)) / sqrt(kd(1,i))
+    endif
+    do j = 2, Nh-1
         phase = 2*pi*rand()
         if ((kd(j,i).le.kmx).and.(kd(j,i).ge.kmn)) then
-            field(j,i) = 2*(cos(phase) + imag*sin(phase)) / sqrt(kd(j,i))
+            Akx(j,i) = 2*(cos(phase) + imag*sin(phase)) / sqrt(kd(j,i))
+        endif
+        phase = 2*pi*rand()
+        if ((kd(j,i).le.kmx).and.(kd(j,i).ge.kmn)) then
+            Aky(j,i) = 2*(cos(phase) + imag*sin(phase)) / sqrt(kd(j,i))
         endif
     end do
+    phase = 2*pi*rand()
+    if ((kd(Nh,i).le.kmx).and.(kd(Nh,i).ge.kmn)) then
+        Akx(Nh,i) = (cos(phase) + imag*sin(phase)) / sqrt(kd(Nh,i))
+    endif
+    phase = 2*pi*rand()
+    if ((kd(Nh,i).le.kmx).and.(kd(Nh,i).ge.kmn)) then
+        Aky(Nh,i) = (cos(phase) + imag*sin(phase)) / sqrt(kd(Nh,i))
+    endif
 end do
 
-field = kill*field ! Dealiasing
+Akx = kill*Akx ! Dealiasing
+Aky = kill*Aky ! Dealiasing
+
+call energy(Akx,Aky,E)
+Akx = famp*Akx/sqrt(E)
+Aky = famp*Aky/sqrt(E)
 
 RETURN
 END SUBROUTINE RandomF
 
-SUBROUTINE GaussianF(field)
+SUBROUTINE GaussianF(Akx,Aky)
 use parameters
 use fftw_mod
 use spectral_mod
+use outputs
 implicit none
-double complex, intent(inout) :: field(Nh,N)
-double precision phase 
+double complex, intent(inout) :: Akx(Nh,N), Aky(Nh,N)
+double precision phase, E
 integer i, j
 
 ! TODO: set seed properly
@@ -321,16 +429,27 @@ integer i, j
 ! print *,phase
 do i = 1, N
     phase = 2*pi*rand()
-    ! call random_number(phase)
-    ! phase = phase*2*pi
-    field(1,i) = (cos(phase) + imag*sin(phase))*exp(-.5*((sqrt(kd(1,i))-kinj*dk)/(width*dk))**2)
-    do j = 2, Nh
+    Akx(1,i) = (cos(phase) + imag*sin(phase))*exp(-.5*((sqrt(kd(1,i))/dk-kinj)/(width))**2)
+    phase = 2*pi*rand()
+    Aky(1,i) = (cos(phase) + imag*sin(phase))*exp(-.5*((sqrt(kd(1,i))/dk-kinj)/(width))**2)
+    do j = 2, Nh-1
         phase = 2*pi*rand()
-        field(j,i) = 2*(cos(phase) + imag*sin(phase))*exp(-.5*((sqrt(kd(j,i))-kinj*dk)/(width*dk))**2)
+        Akx(j,i) = 2*(cos(phase) + imag*sin(phase))*exp(-.5*((sqrt(kd(j,i))/dk-kinj)/(width))**2)
+        phase = 2*pi*rand()
+        Aky(j,i) = 2*(cos(phase) + imag*sin(phase))*exp(-.5*((sqrt(kd(j,i))/dk-kinj)/(width))**2)
     end do
+    phase = 2*pi*rand()
+    Akx(Nh,i) = (cos(phase) + imag*sin(phase))*exp(-.5*((sqrt(kd(Nh,i))/dk-kinj)/(width))**2)
+    phase = 2*pi*rand()
+    Aky(Nh,i) = (cos(phase) + imag*sin(phase))*exp(-.5*((sqrt(kd(Nh,i))/dk-kinj)/(width))**2)
 end do
 
-field = kill*field ! Dealiasing
+Akx = kill*Akx ! Dealiasing
+Aky = kill*Aky ! Dealiasing
+
+call energy(Akx,Aky,E)
+Akx = famp*Akx/sqrt(E)
+Aky = famp*Aky/sqrt(E)
 
 RETURN
 END SUBROUTINE GaussianF

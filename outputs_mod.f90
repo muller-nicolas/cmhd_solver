@@ -36,6 +36,32 @@ close(45)
 END SUBROUTINE save_energy
 
 !*****************************************************************
+SUBROUTINE energy(Akx,Aky,Eout)
+!***********compute energies
+use parameters
+use fftw_mod
+implicit none
+double complex, intent(in) :: Akx(Nh,N), Aky(Nh,N)
+double precision, intent(out) :: Eout
+double precision norm 
+integer i, j
+
+norm = 1.0d0/real(N*N*N*N)
+Eout = 0.0d0
+
+do i = 1, N
+    Eout = Eout + 0.5*(abs(Akx(1,i))**2 + abs(Aky(1,i))**2)
+    do j = 2, Nh-1
+        Eout = Eout + (abs(Akx(j,i))**2 + abs(Aky(j,i))**2)
+    end do
+    Eout = Eout + 0.5*(abs(Akx(Nh,i))**2 + abs(Aky(Nh,i))**2)
+end do
+Eout = Eout*norm
+
+RETURN
+END SUBROUTINE energy
+
+!*****************************************************************
 SUBROUTINE compute_energy(rhok,ukx,uky,bkx,bky,EU,EB,Erho,Erho2,divu,divb)
 !***********compute energies
 use parameters
@@ -59,16 +85,20 @@ divb = 0.
 
 ! TODO: Erho is not properly computed
 do i = 1, N
-    EU = EU + 0.5*(abs(ukx(1,i))**2 + abs(uky(1,i))**2)
-    EB = EB + 0.5*(abs(bkx(1,i))**2 + abs(bky(1,i))**2)
-    Erho = Erho + 0.5*(1.d0+abs(rhok(1,i)))*(abs(ukx(1,i))**2 + abs(uky(1,i))**2) ! CHECK
+    EU = EU + (abs(ukx(1,i))**2 + abs(uky(1,i))**2)
+    EB = EB + (abs(bkx(1,i))**2 + abs(bky(1,i))**2)
+    Erho = Erho + (1.d0+abs(rhok(1,i)))*(abs(ukx(1,i))**2 + abs(uky(1,i))**2) ! CHECK
     Erho2 = Erho2 + abs(rhok(1,i))
-    do j = 2, Nh
-        EU = EU + (abs(ukx(j,i))**2 + abs(uky(j,i))**2)
-        EB = EB + (abs(bkx(j,i))**2 + abs(bky(j,i))**2)
-        Erho = Erho + (1.d0+abs(rhok(j,i)))*(abs(ukx(j,i))**2 + abs(uky(j,i))**2)
+    do j = 2, Nh-1
+        EU = EU + 2*(abs(ukx(j,i))**2 + abs(uky(j,i))**2)
+        EB = EB + 2*(abs(bkx(j,i))**2 + abs(bky(j,i))**2)
+        Erho = Erho + 2*(1.d0+abs(rhok(j,i)))*(abs(ukx(j,i))**2 + abs(uky(j,i))**2)
         Erho2 = Erho2 + abs(rhok(j,i))
     end do
+    EU = EU + (abs(ukx(Nh,i))**2 + abs(uky(Nh,i))**2)
+    EB = EB + (abs(bkx(Nh,i))**2 + abs(bky(Nh,i))**2)
+    Erho = Erho + (1.d0+abs(rhok(Nh,i)))*(abs(ukx(Nh,i))**2 + abs(uky(Nh,i))**2) ! CHECK
+    Erho2 = Erho2 + abs(rhok(Nh,i))
 end do
 
 EU = EU*norm2

@@ -25,8 +25,6 @@ call RHS3(rhok,ukx,uky,bkx,bky,nonlinuky)
 call RHS4(ukx,uky,bkx,bky,nonlinbkx)
 call RHS5(ukx,uky,bkx,bky,nonlinbky)
 
-! print *, "rho: ", sum(abs(nonlinrhok))
-
 ! Dealiasing
 ! nonlinrhok = kill * nonlinrhok
 ! nonlinukx  = kill * nonlinukx

@@ -74,7 +74,7 @@ ax[0].axvline(kinj, color='k', linestyle='--')
 ax[1].axvline(kinj, color='k', linestyle='--')
 ax[2].axvline(kinj, color='k', linestyle='--')
 
-ksta = 1
+ksta = int(kinj) - 1
 kend = kmax
 x = k[ksta:kmax]
 ax[0].plot(x, (x/x[0])**(-6.)*Ru[ksta], color='k', ls='--',linewidth=1.)

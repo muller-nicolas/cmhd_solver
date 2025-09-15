@@ -12,7 +12,9 @@ divu = np.loadtxt('out_divu')
 divb = np.loadtxt('out_divb')
 time = np.loadtxt('out_time')
 
-Urms = np.sqrt(EU)
+Nt = len(EU)
+Urms = np.mean(np.sqrt(EU[Nt//2:]))
+print('Urms',Urms)
 
 DeltaT = P[0]
 Nt = P[1]

@@ -49,8 +49,8 @@ def run_animation():
 
 fig = plt.figure(1)
 ax = plt.axes(xlim=(0, N), ylim=(0, N))
-field = load_fields(path, name, (ista+iend)//2, N)
-vmin = np.min(field) * 1.0
+field = load_fields(path, name, (ista+iend+2)//2, N)
+vmin = -np.max(field) * 1.0
 vmax = -vmin
 im = plt.imshow(field, animated=False, vmin=vmin, vmax=vmax, cmap=cmap)
 plt.title(name)
