@@ -29,12 +29,12 @@ double precision ta, time, timests, phase
 double complex :: ukx0(Nh,N), uky0(Nh,N), bkx0(Nh,N), bky0(Nh,N), rhok0(Nh,N)
 double complex :: ukx1(Nh,N), uky1(Nh,N), bkx1(Nh,N), bky1(Nh,N), rhok1(Nh,N)
 double complex :: ukx2(Nh,N), uky2(Nh,N), bkx2(Nh,N), bky2(Nh,N), rhok2(Nh,N)
-double complex :: ukx3(Nh,N), uky3(Nh,N), bkx3(Nh,N), bky3(Nh,N), rhok3(Nh,N)
-double complex :: ukx4(Nh,N), uky4(Nh,N), bkx4(Nh,N), bky4(Nh,N), rhok4(Nh,N)
+! double complex :: ukx3(Nh,N), uky3(Nh,N), bkx3(Nh,N), bky3(Nh,N), rhok3(Nh,N)
+! double complex :: ukx4(Nh,N), uky4(Nh,N), bkx4(Nh,N), bky4(Nh,N), rhok4(Nh,N)
 double complex :: nonlinrhok0(Nh,N), nonlinukx0(Nh,N), nonlinuky0(Nh,N), nonlinbkx0(Nh,N), nonlinbky0(Nh,N)
 double complex :: nonlinrhok1(Nh,N), nonlinukx1(Nh,N), nonlinuky1(Nh,N), nonlinbkx1(Nh,N), nonlinbky1(Nh,N)
-double complex :: nonlinrhok2(Nh,N), nonlinukx2(Nh,N), nonlinuky2(Nh,N), nonlinbkx2(Nh,N), nonlinbky2(Nh,N)
-double complex :: nonlinrhok3(Nh,N), nonlinukx3(Nh,N), nonlinuky3(Nh,N), nonlinbkx3(Nh,N), nonlinbky3(Nh,N)
+! double complex :: nonlinrhok2(Nh,N), nonlinukx2(Nh,N), nonlinuky2(Nh,N), nonlinbkx2(Nh,N), nonlinbky2(Nh,N)
+! double complex :: nonlinrhok3(Nh,N), nonlinukx3(Nh,N), nonlinuky3(Nh,N), nonlinbkx3(Nh,N), nonlinbky3(Nh,N)
 double complex :: fukx(Nh,N), fuky(Nh,N)
 
 integer i, j, it, corr
