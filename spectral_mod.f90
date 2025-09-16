@@ -171,7 +171,7 @@ END SUBROUTINE spectrumrho1D
 !*****************************************************************
 SUBROUTINE WriteSpatioTemporalSpectrum(rhok, ukx, uky, bkx, bky, time)
 double complex :: rhok(Nh,N), ukx(Nh,N), uky(Nh,N), bkx(Nh,N), bky(Nh,N)
-double precision :: time, Euxx(Nh,N), Euyy(Nh,N), Ebxx(Nh,N), Ebyy(Nh,N)
+double precision :: time, tmpk1(Nh,N)
 integer :: uSTS=80
 
 character (len=11) :: sts_time='STS_time'
@@ -195,38 +195,43 @@ character (len=12) :: sts_rhokx='STS_rhokx'
 character (len=12) :: sts_rhoky='STS_rhoky'
 
 ! TODO: compute local energy in the good way (counting each value once, and unfolding the size to N,N)
-Euxx(:,:) = 0.5*(abs(ukx)**2)
-Euyy(:,:) = 0.5*(abs(uky)**2)
-Ebxx(:,:) = 0.5*(abs(bkx)**2)
-Ebyy(:,:) = 0.5*(abs(bky)**2)
+
+
 
 OPEN(uSTS,file=sts_time,position='append',form='formatted')
 write(uSTS,*) time
 close(uSTS)
 
+tmpk1(:,:) = 0.5*(abs(ukx)**2)
 OPEN (uSTS, file=STS_Euxx_x, access='stream', position='append',form='unformatted')
-write(uSTS) Euxx(1,:) ! ky=0
+write(uSTS) tmpk1(1,:) ! ky=0
 close(uSTS)
 OPEN (uSTS, file=STS_Euxx_y, access='stream', position='append',form='unformatted')
-write(uSTS) Euxx(:,1) ! kx=0
+write(uSTS) tmpk1(:,1) ! kx=0
 close(uSTS)
+
+tmpk1(:,:) = 0.5*(abs(uky)**2)
 OPEN (uSTS, file=STS_Euyy_x, access='stream', position='append',form='unformatted')
-write(uSTS) Euyy(1,:) ! ky=0
+write(uSTS) tmpk1(1,:) ! ky=0
 close(uSTS)
 OPEN (uSTS, file=STS_Euyy_y, access='stream', position='append',form='unformatted')
-write(uSTS) Euyy(:,1) ! kx=0
+write(uSTS) tmpk1(:,1) ! kx=0
 close(uSTS)
+
+tmpk1(:,:) = 0.5*(abs(bkx)**2)
 OPEN (uSTS, file=STS_Ebxx_x, access='stream', position='append',form='unformatted')
-write(uSTS) Ebxx(1,:) ! ky=0
+write(uSTS) tmpk1(1,:) ! ky=0
 close(uSTS)
 OPEN (uSTS, file=STS_Ebxx_y, access='stream', position='append',form='unformatted')
-write(uSTS) Ebxx(:,1) ! kx=0
+write(uSTS) tmpk1(:,1) ! kx=0
 close(uSTS)
+
+tmpk1(:,:) = 0.5*(abs(bky)**2)
 OPEN (uSTS, file=STS_Ebyy_x, access='stream', position='append',form='unformatted')
-write(uSTS) Ebyy(1,:) ! ky=0
+write(uSTS) tmpk1(1,:) ! ky=0
 close(uSTS)
 OPEN (uSTS, file=STS_Ebyy_y, access='stream', position='append',form='unformatted')
-write(uSTS) Ebyy(:,1) ! kx=0
+write(uSTS) tmpk1(:,1) ! kx=0
 close(uSTS)
 
 OPEN (uSTS, file=sts_uxkx, access='stream', position='append',form='unformatted')

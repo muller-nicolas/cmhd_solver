@@ -2,7 +2,7 @@ MODULE parameters
 implicit none
 
 public
-integer, parameter :: N = 512 ! Resolution
+integer, parameter :: N = 1024 ! Resolution
 integer, parameter :: Nh = N/2+1  ! Number of wavenumbers
 integer, parameter :: Na = int(N/3)   
 integer :: nthreads = 4  ! Number of omp threads

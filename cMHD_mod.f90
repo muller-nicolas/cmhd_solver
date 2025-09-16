@@ -7,10 +7,7 @@ use adaptive_mod
 use spectral_mod
 implicit none
 
-! double complex :: tmpk1(Nh,N) 
-! double complex :: field(Nh,N) 
-! double precision :: tmp1(N,N), tmp2(N,N) 
-
+! TODO: pointers
 double complex  , allocatable :: tmpk1(:,:), tmpk2(:,:)
 double precision, allocatable :: tmp1(:,:), tmp2(:,:) 
 
@@ -40,11 +37,10 @@ deallocate(tmpk1, tmpk2, tmp1, tmp2)
 
 END SUBROUTINE RHS
 
-subroutine RHS1(rhok,ukx,uky,nonlinrhok)
+
+SUBROUTINE RHS1(rhok,ukx,uky,nonlinrhok)
 double complex, intent(in) :: rhok(Nh,N), ukx(Nh,N), uky(Nh,N)
 double complex, intent(out) :: nonlinrhok(Nh,N)
-! double complex :: divu(Nh,N)
-! double complex, allocatable :: tmpk1(:,:), tmpk2(:,:)
 ! rhot = -divu - rho*(divu) - ux*rhox - uy*rhoy
 
 ! Add linear terms
@@ -78,7 +74,7 @@ tmp1 = tmp1*tmp2
 call FFT_PS(tmp1,tmpk1)
 nonlinrhok = nonlinrhok - tmpk1
 
-end subroutine RHS1
+END SUBROUTINE RHS1
 
 SUBROUTINE RHS2(ukx,uky,bkx,bky,nonlinukx)
 double complex :: ukx(Nh,N), uky(Nh,N), bkx(Nh,N), bky(Nh,N)

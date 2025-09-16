@@ -25,25 +25,14 @@ implicit none
 double precision t1, t2
 double precision ta, time, timests, phase
 
-! double complex :: ukx0(Nh,N), uky0(Nh,N), bkx0(Nh,N), bky0(Nh,N), rhok0(Nh,N)
-! double complex :: ukx1(Nh,N), uky1(Nh,N), bkx1(Nh,N), bky1(Nh,N), rhok1(Nh,N)
-! double complex :: ukx2(Nh,N), uky2(Nh,N), bkx2(Nh,N), bky2(Nh,N), rhok2(Nh,N)
-! ! double complex :: ukx3(Nh,N), uky3(Nh,N), bkx3(Nh,N), bky3(Nh,N), rhok3(Nh,N)
-! ! double complex :: ukx4(Nh,N), uky4(Nh,N), bkx4(Nh,N), bky4(Nh,N), rhok4(Nh,N)
-! double complex :: nonlinrhok0(Nh,N), nonlinukx0(Nh,N), nonlinuky0(Nh,N), nonlinbkx0(Nh,N), nonlinbky0(Nh,N)
-! double complex :: nonlinrhok1(Nh,N), nonlinukx1(Nh,N), nonlinuky1(Nh,N), nonlinbkx1(Nh,N), nonlinbky1(Nh,N)
-! ! double complex :: nonlinrhok2(Nh,N), nonlinukx2(Nh,N), nonlinuky2(Nh,N), nonlinbkx2(Nh,N), nonlinbky2(Nh,N)
-! ! double complex :: nonlinrhok3(Nh,N), nonlinukx3(Nh,N), nonlinuky3(Nh,N), nonlinbkx3(Nh,N), nonlinbky3(Nh,N)
-! double complex :: fukx(Nh,N), fuky(Nh,N)
-
 double complex, allocatable :: ukx1(:,:), uky1(:,:), bkx1(:,:), bky1(:,:), rhok1(:,:)
 double complex, allocatable :: ukx2(:,:), uky2(:,:), bkx2(:,:), bky2(:,:), rhok2(:,:)
-! double complex, allocatable :: ukx3(:,:), uky3(:,:), bkx3(:,:), bky3(:,:), rhok3(:,:)
-! double complex, allocatable :: ukx4(:,:), uky4(:,:), bkx4(:,:), bky4(:,:), rhok4(:,:)
+! double complex, allocatable :: ukx3(:,:), uky3(:,:), bkx3(:,:), bky3(:,:), rhok3(:,:) ! RK4
+! double complex, allocatable :: ukx4(:,:), uky4(:,:), bkx4(:,:), bky4(:,:), rhok4(:,:) ! RK4
 double complex, allocatable :: nonlinrhok0(:,:), nonlinukx0(:,:), nonlinuky0(:,:), nonlinbkx0(:,:), nonlinbky0(:,:)
 double complex, allocatable :: nonlinrhok1(:,:), nonlinukx1(:,:), nonlinuky1(:,:), nonlinbkx1(:,:), nonlinbky1(:,:)
-! double complex, allocatable :: nonlinrhok2(:,:), nonlinukx2(:,:), nonlinuky2(:,:), nonlinbkx2(:,:), nonlinbky2(:,:)
-! double complex, allocatable :: nonlinrhok3(:,:), nonlinukx3(:,:), nonlinuky3(:,:), nonlinbkx3(:,:), nonlinbky3(:,:)
+! double complex, allocatable :: nonlinrhok2(:,:), nonlinukx2(:,:), nonlinuky2(:,:), nonlinbkx2(:,:), nonlinbky2(:,:) ! RK4
+! double complex, allocatable :: nonlinrhok3(:,:), nonlinukx3(:,:), nonlinuky3(:,:), nonlinbkx3(:,:), nonlinbky3(:,:) ! RK4
 double complex, allocatable :: fukx(:,:), fuky(:,:)
 
 integer i, j, it, corr
@@ -51,12 +40,12 @@ character (len=11) :: animR='restart-'
 
 allocate(ukx1(Nh,N), uky1(Nh,N), bkx1(Nh,N), bky1(Nh,N), rhok1(Nh,N))
 allocate(ukx2(Nh,N), uky2(Nh,N), bkx2(Nh,N), bky2(Nh,N), rhok2(Nh,N))
-! allocate(ukx3(Nh,N), uky3(Nh,N), bkx3(Nh,N), bky3(Nh,N), rhok3(Nh,N))
-! allocate(ukx4(Nh,N), uky4(Nh,N), bkx4(Nh,N), bky4(Nh,N), rhok4(Nh,N))
+! allocate(ukx3(Nh,N), uky3(Nh,N), bkx3(Nh,N), bky3(Nh,N), rhok3(Nh,N)) ! RK4
+! allocate(ukx4(Nh,N), uky4(Nh,N), bkx4(Nh,N), bky4(Nh,N), rhok4(Nh,N)) ! RK4
 allocate(nonlinrhok0(Nh,N), nonlinukx0(Nh,N), nonlinuky0(Nh,N), nonlinbkx0(Nh,N), nonlinbky0(Nh,N))
 allocate(nonlinrhok1(Nh,N), nonlinukx1(Nh,N), nonlinuky1(Nh,N), nonlinbkx1(Nh,N), nonlinbky1(Nh,N))
-! allocate(nonlinrhok2(Nh,N), nonlinukx2(Nh,N), nonlinuky2(Nh,N), nonlinbkx2(Nh,N), nonlinbky2(Nh,N))
-! allocate(nonlinrhok3(Nh,N), nonlinukx3(Nh,N), nonlinuky3(Nh,N), nonlinbkx3(Nh,N), nonlinbky3(Nh,N))
+! allocate(nonlinrhok2(Nh,N), nonlinukx2(Nh,N), nonlinuky2(Nh,N), nonlinbkx2(Nh,N), nonlinbky2(Nh,N)) ! RK4
+! allocate(nonlinrhok3(Nh,N), nonlinukx3(Nh,N), nonlinuky3(Nh,N), nonlinbkx3(Nh,N), nonlinbky3(Nh,N)) ! RK4
 allocate(fukx(Nh,N), fuky(Nh,N))    
 
 ! nthreads = omp_get_max_threads()
@@ -95,6 +84,7 @@ elseif (nrestart .eq. 0) then
     close(66)
 end if
 
+print *,"first iteration"
 ! Do one iteration of the time-stepping for AB2
 call RHS(rhok1,ukx1,uky1,bkx1,bky1,nonlinrhok0,nonlinukx0,nonlinuky0,nonlinbkx0,nonlinbky0)
 
@@ -108,6 +98,7 @@ bky1  = bky1  + deltaT*nonlinbky0
 call GaussianF(fukx,fuky)
 ! call RandomF(fukx,fuky)
 corr = int(corr0/deltaT)
+
 
 !************************************************************************
 !*****Time evolution: Adams-Bashforth
@@ -211,6 +202,7 @@ nonlinbky0=nonlinbky1
 ! bkx0=bkx2
 ! bky0=bky2
 
+!**************** Write quantities
 ! Compute and write energy
 if ( (mod(it,inrj) .eq. 0) ) then
 call save_energy(rhok2,ukx2,uky2,bkx2,bky2)
@@ -254,6 +246,8 @@ end if
 
 end do ! end of the temporal loop
 
+!****************End of the time loop
+
 ! Save fields in spectral space for restart
 write(animR(9:11),'(i3)') istore_fields
 open(30, file = animR, status = 'new',form='unformatted')
@@ -266,6 +260,16 @@ close(30)
 t2 = omp_get_wtime()
 write(*,*) "cpu time", t2-t1
 call end_fftw ! Deallocate plans
+
+deallocate(ukx1, uky1, bkx1, bky1, rhok1)
+deallocate(ukx2, uky2, bkx2, bky2, rhok2)
+! deallocate(ukx3, uky3, bkx3, bky3, rhok3)
+! deallocate(ukx4, uky4, bkx4, bky4, rhok4)
+deallocate(nonlinrhok0, nonlinukx0, nonlinuky0, nonlinbkx0, nonlinbky0)
+deallocate(nonlinrhok1, nonlinukx1, nonlinuky1, nonlinbkx1, nonlinbky1)
+! deallocate(nonlinrhok2, nonlinukx2, nonlinuky2, nonlinbkx2, nonlinbky2)
+! deallocate(nonlinrhok3, nonlinukx3, nonlinuky3, nonlinbkx3, nonlinbky3)
+deallocate(fukx, fuky)
 
 print *, 'OK'
 end program CMHD

@@ -13,9 +13,12 @@ save
 contains
 
 SUBROUTINE init_fftw
-double precision :: aa(N,N)
-double complex :: bb(Nh,N)
+double precision, allocatable :: aa(:,:)
+double complex, allocatable :: bb(:,:)
 integer :: void
+
+allocate (aa(N,N))
+allocate (bb(Nh,N))
 
 ! Initialize FFTW threading
 call dfftw_init_threads(void)
@@ -24,6 +27,8 @@ call dfftw_plan_with_nthreads(nthreads)
 ! Create plans
 call dfftw_plan_dft_r2c_2d_(plan_for, N, N, aa, bb, FFTW_MEASURE)
 call dfftw_plan_dft_c2r_2d_(plan_back, N, N, bb, aa, FFTW_MEASURE)
+
+deallocate (aa, bb)
 
 RETURN
 END SUBROUTINE init_fftw

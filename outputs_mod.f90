@@ -9,6 +9,7 @@ implicit none
 
 double complex, allocatable :: tmpk1(:,:), tmpk2(:,:) 
 double precision, allocatable :: tmp1(:,:), tmp2(:,:) 
+double precision, allocatable :: spec1d(:)
 
 contains
 
@@ -68,8 +69,6 @@ SUBROUTINE compute_energy(rhok,ukx,uky,bkx,bky,EU,EB,Erho,Erho2,divu,divb)
 !***********compute energies
 double complex, intent(in) :: rhok(Nh,N), ukx(Nh,N), uky(Nh,N), bkx(Nh,N), bky(Nh,N)
 double precision, intent(out) :: EU, EB, Erho, Erho2, divu, divb
-! double complex tmpk1(Nh,N), tmpk2(Nh,N) 
-! double precision tmp1(N,N), tmp2(N,N) 
 double precision norm, norm2
 integer i, j
 
@@ -151,11 +150,12 @@ END SUBROUTINE energyF
 
 SUBROUTINE save_spectra(rhok,ukx,uky,bkx,bky,istore_sp)
 double complex, intent(in) :: rhok(Nh,N), ukx(Nh,N), uky(Nh,N), bkx(Nh,N), bky(Nh,N)
-double precision spec1d(Nh)
 integer, intent(inout) :: istore_sp
 character (len=21) :: animU1D='out_spectrumEU-1D-'
 character (len=21) :: animB1D='out_spectrumEB-1D-'
 character (len=22) :: animrho1D='out_spectrumrho-1D-'
+
+allocate (spec1d(Nh))
 
 ! Save kinetic energy spectrum
 write(animU1D(19:21),'(i3)') istore_sp
@@ -180,13 +180,13 @@ close(31)
 
 istore_sp = istore_sp + 1
 
+deallocate (spec1d)
+
 END SUBROUTINE save_spectra
 
 SUBROUTINE save_fields(rhok,ukx,uky,bkx,bky,istore_fields)
 double complex, intent(in) :: rhok(Nh,N), ukx(Nh,N), uky(Nh,N), bkx(Nh,N), bky(Nh,N)
 integer, intent(inout) :: istore_fields
-double complex :: tmpk(Nh,N)
-double precision :: tmp(N,N)
 
 character (len=14) :: animO='out_rho-2D-'
 character (len=13) :: animW='out_wz-2D-'
@@ -194,40 +194,45 @@ character (len=13) :: animJ='out_jz-2D-'
 character (len=15) :: animdiv='out_divb-2D-'
 character (len=15) :: animdivu='out_divu-2D-'
 
+allocate( tmpk1(Nh,N), tmp1(N,N))
+
+tmpk1   = rhok
 write(animO(12:14),'(i3)') istore_fields
-call FFT_SP(rhok,tmp)
+call FFT_SP(tmpk1,tmp1)
 open(30, file = animO, status='replace', form='unformatted', access='stream')
-write(30) tmp(:,:)
+write(30) tmp1(:,:)
 close(30)
 !
 write(animW(11:13),'(i3)') istore_fields
-call curl(ukx,uky,tmpk)
-call FFT_SP(tmpk,tmp)
+call curl(ukx,uky,tmpk1)
+call FFT_SP(tmpk1,tmp1)
 open(30, file = animW, status='replace', form='unformatted', access='stream')
-write(30) tmp(:,:)
+write(30) tmp1(:,:)
 close(30)
 !
-call curl(bkx,bky,tmpk)
-call FFT_SP(tmpk,tmp)
+call curl(bkx,bky,tmpk1)
+call FFT_SP(tmpk1,tmp1)
 write(animJ(11:13),'(i3)') istore_fields
 open(30, file = animJ, status='replace', form='unformatted', access='stream')
-write(30) tmp(:,:)
+write(30) tmp1(:,:)
 close(30)
 !
 write(animdiv(13:15),'(i3)') istore_fields
-call divergence(bkx,bky,tmpk)
-call FFT_SP(tmpk,tmp)
+call divergence(bkx,bky,tmpk1)
+call FFT_SP(tmpk1,tmp1)
 open(30, file = animdiv, status='replace', form='unformatted', access='stream')
-write(30) tmp(:,:)
+write(30) tmp1(:,:)
 close(30)
 !
 write(animdivu(13:15),'(i3)') istore_fields
-call divergence(ukx,uky,tmpk)
-call FFT_SP(tmpk,tmp)
+call divergence(ukx,uky,tmpk1)
+call FFT_SP(tmpk1,tmp1)
 open(30, file = animdivu, status='replace', form='unformatted', access='stream')
-write(30) tmp(:,:)
+write(30) tmp1(:,:)
 close(30)
 istore_fields = istore_fields + 1
+
+deallocate (tmpk1, tmp1)
 
 END SUBROUTINE save_fields
 
