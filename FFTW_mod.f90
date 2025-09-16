@@ -29,8 +29,8 @@ RETURN
 END SUBROUTINE init_fftw
 
 SUBROUTINE FFT_PS(Ain, Aout)
-double precision :: Ain(N,N)
-double complex :: Aout(Nh,N)
+double precision, intent(in) :: Ain(N,N)
+double complex, intent(out) :: Aout(Nh,N)
 
 call dfftw_execute_dft_r2c(plan_for, Ain, Aout)
 
@@ -38,8 +38,9 @@ RETURN
 END SUBROUTINE FFT_PS
 
 SUBROUTINE FFT_SP(Ain, Aout)
-double complex :: Ain(Nh,N)
-double precision :: Aout(N,N), norm
+double complex, intent(in) :: Ain(Nh,N)
+double precision, intent(out) :: Aout(N,N)
+double precision :: norm
 
 norm = 1. / real(N*N)
 

@@ -7,9 +7,12 @@ use adaptive_mod
 use spectral_mod
 implicit none
 
-double complex :: tmpk1(Nh,N) 
-double complex :: field(Nh,N) 
-double precision :: tmp1(N,N), tmp2(N,N) 
+! double complex :: tmpk1(Nh,N) 
+! double complex :: field(Nh,N) 
+! double precision :: tmp1(N,N), tmp2(N,N) 
+
+double complex  , allocatable :: tmpk1(:,:), tmpk2(:,:)
+double precision, allocatable :: tmp1(:,:), tmp2(:,:) 
 
 contains
 
@@ -17,6 +20,8 @@ SUBROUTINE RHS(rhok,ukx,uky,bkx,bky,nonlinrhok,nonlinukx,nonlinuky,nonlinbkx,non
 double complex :: rhok(Nh,N), ukx(Nh,N), uky(Nh,N), bkx(Nh,N), bky(Nh,N)
 double complex :: nonlinrhok(Nh,N), nonlinukx(Nh,N), nonlinuky(Nh,N) 
 double complex :: nonlinbkx(Nh,N), nonlinbky(Nh,N)
+
+allocate(tmpk1(Nh,N), tmpk2(Nh,N), tmp1(N,N), tmp2(N,N))
 
 call RHS1(rhok,ukx,uky,nonlinrhok)
 call RHS2(ukx,uky,bkx,bky,nonlinukx)
@@ -31,39 +36,43 @@ call RHS5(ukx,uky,bkx,bky,nonlinbky)
 ! nonlinbkx  = kill * nonlinbkx
 ! nonlinbky  = kill * nonlinbky
 
+deallocate(tmpk1, tmpk2, tmp1, tmp2)
+
 END SUBROUTINE RHS
 
 subroutine RHS1(rhok,ukx,uky,nonlinrhok)
-double complex :: rhok(Nh,N), ukx(Nh,N), uky(Nh,N)
-double complex :: nonlinrhok(Nh,N), divu(Nh,N)
+double complex, intent(in) :: rhok(Nh,N), ukx(Nh,N), uky(Nh,N)
+double complex, intent(out) :: nonlinrhok(Nh,N)
+! double complex :: divu(Nh,N)
+! double complex, allocatable :: tmpk1(:,:), tmpk2(:,:)
 ! rhot = -divu - rho*(divu) - ux*rhox - uy*rhoy
 
 ! Add linear terms
-call divergence(ukx,uky,divu)
+call divergence(ukx,uky,tmpk2)
 
-nonlinrhok = -divu
+nonlinrhok = -tmpk2
 
-field = rhok
-call FFT_SP(field,tmp1)
-call FFT_SP(divu,tmp2)
+tmpk1 = rhok
+call FFT_SP(tmpk1,tmp1)
+call FFT_SP(tmpk2,tmp2)
 ! rho*(uxdx + uydy)
 tmp1 = tmp1*tmp2
 call FFT_PS(tmp1,tmpk1)
 nonlinrhok = nonlinrhok - tmpk1
 
-field = ukx
-call derivex(rhok,tmpk1)
-call FFT_SP(field,tmp1)
-call FFT_SP(tmpk1,tmp2)
+tmpk1 = ukx
+call derivex(rhok,tmpk2)
+call FFT_SP(tmpk1,tmp1)
+call FFT_SP(tmpk2,tmp2)
 ! ux*rhodx
 tmp1 = tmp1*tmp2 
 call FFT_PS(tmp1,tmpk1)
 nonlinrhok = nonlinrhok - tmpk1
 
-field = uky
-call derivey(rhok,tmpk1)
-call FFT_SP(field,tmp1)
-call FFT_SP(tmpk1,tmp2)
+tmpk1 = uky
+call derivey(rhok,tmpk2)
+call FFT_SP(tmpk1,tmp1)
+call FFT_SP(tmpk2,tmp2)
 ! uy*rhody
 tmp1 = tmp1*tmp2 
 call FFT_PS(tmp1,tmpk1)
@@ -79,28 +88,28 @@ double complex :: nonlinukx(Nh,N)
 ! Add linear terms
 nonlinukx = 0.
 
-field = ukx
-call derivex(ukx,tmpk1)
-call FFT_SP(field,tmp1)
-call FFT_SP(tmpk1,tmp2)
+tmpk1 = ukx
+call derivex(ukx,tmpk2)
+call FFT_SP(tmpk1,tmp1)
+call FFT_SP(tmpk2,tmp2)
 ! ux*uxdx
 tmp1 = tmp1*tmp2 
 call FFT_PS(tmp1,tmpk1)
 nonlinukx = nonlinukx - tmpk1
 
-field = uky 
-call derivey(ukx,tmpk1)
-call FFT_SP(field,tmp1)
-call FFT_SP(tmpk1,tmp2)
+tmpk1 = uky 
+call derivey(ukx,tmpk2)
+call FFT_SP(tmpk1,tmp1)
+call FFT_SP(tmpk2,tmp2)
 ! uy*uxdy
 tmp1 = tmp1*tmp2 
 call FFT_PS(tmp1,tmpk1)
 nonlinukx = nonlinukx - tmpk1
 
-field = bky
-call curl(bkx,bky,tmpk1)
-call FFT_SP(field,tmp1)
-call FFT_SP(tmpk1,tmp2)
+tmpk1 = bky
+call curl(bkx,bky,tmpk2)
+call FFT_SP(tmpk1,tmp1)
+call FFT_SP(tmpk2,tmp2)
 ! by*(bydx - bxdy)
 tmp1 = tmp1*tmp2 
 call FFT_PS(tmp1,tmpk1)
@@ -114,31 +123,31 @@ double complex :: nonlinuky(Nh,N)
 ! uyt = cur(b) - ux*uydx - uy*uydy + (bx-rho)*(curl(b))
 
 ! Add linear terms
-call curl(bkx,bky,tmpk1)
-nonlinuky = tmpk1
+call curl(bkx,bky,tmpk2)
+nonlinuky = tmpk2
 
 ! Nonlinear terms
-field = bkx - rhok
-call FFT_SP(field,tmp1)
-call FFT_SP(tmpk1,tmp2)
+tmpk1 = bkx - rhok
+call FFT_SP(tmpk1,tmp1)
+call FFT_SP(tmpk2,tmp2)
 ! (bx-rho)*(bxdy - bydx)
 tmp1 = tmp1*tmp2
 call FFT_PS(tmp1,tmpk1)
 nonlinuky = nonlinuky + tmpk1
 
-field = ukx
-call derivex(uky,tmpk1)
-call FFT_SP(field,tmp1)
-call FFT_SP(tmpk1,tmp2)
+tmpk1 = ukx
+call derivex(uky,tmpk2)
+call FFT_SP(tmpk1,tmp1)
+call FFT_SP(tmpk2,tmp2)
 ! ux*uydx
 tmp1 = tmp1*tmp2 
 call FFT_PS(tmp1,tmpk1)
 nonlinuky = nonlinuky - tmpk1
 
-field = uky
-call derivey(uky,tmpk1)
-call FFT_SP(field,tmp1)
-call FFT_SP(tmpk1,tmp2)
+tmpk1 = uky
+call derivey(uky,tmpk2)
+call FFT_SP(tmpk1,tmp1)
+call FFT_SP(tmpk2,tmp2)
 ! uy*uydy
 tmp1 = tmp1*tmp2 
 call FFT_PS(tmp1,tmpk1)
@@ -155,37 +164,37 @@ double complex :: nonlinbkx(Nh,N)
 call derivey(uky,tmpk1)
 nonlinbkx = -tmpk1
 
-field = bky
-call derivey(ukx,tmpk1)
-call FFT_SP(field,tmp1)
-call FFT_SP(tmpk1,tmp2)
+tmpk1 = bky
+call derivey(ukx,tmpk2)
+call FFT_SP(tmpk1,tmp1)
+call FFT_SP(tmpk2,tmp2)
 ! by*uxdy
 tmp1 = tmp1*tmp2 
 call FFT_PS(tmp1,tmpk1)
 nonlinbkx = nonlinbkx + tmpk1
 
-field = ukx
-call derivex(bkx,tmpk1)
-call FFT_SP(field,tmp1)
-call FFT_SP(tmpk1,tmp2)
+tmpk1 = ukx
+call derivex(bkx,tmpk2)
+call FFT_SP(tmpk1,tmp1)
+call FFT_SP(tmpk2,tmp2)
 ! ux*bxdx
 tmp1 = tmp1*tmp2 
 call FFT_PS(tmp1,tmpk1)
 nonlinbkx = nonlinbkx - tmpk1
 
-field = uky
-call derivey(bkx,tmpk1)
-call FFT_SP(field,tmp1)
-call FFT_SP(tmpk1,tmp2)
+tmpk1 = uky
+call derivey(bkx,tmpk2)
+call FFT_SP(tmpk1,tmp1)
+call FFT_SP(tmpk2,tmp2)
 ! uy*bxdy
 tmp1 = tmp1*tmp2 
 call FFT_PS(tmp1,tmpk1)
 nonlinbkx = nonlinbkx - tmpk1
 
-field = bkx
-call derivey(uky,tmpk1)
-call FFT_SP(field,tmp1)
-call FFT_SP(tmpk1,tmp2)
+tmpk1 = bkx
+call derivey(uky,tmpk2)
+call FFT_SP(tmpk1,tmp1)
+call FFT_SP(tmpk2,tmp2)
 ! bx*uydy
 tmp1 = tmp1*tmp2 
 call FFT_PS(tmp1,tmpk1)
@@ -202,36 +211,36 @@ double complex :: nonlinbky(Nh,N)
 call derivex(uky,tmpk1)
 nonlinbky = tmpk1
 
-field = bkx
-call FFT_SP(field,tmp1)
-call FFT_SP(tmpk1,tmp2)
+tmpk1 = bkx
+call FFT_SP(tmpk1,tmp1)
+call FFT_SP(tmpk2,tmp2)
 ! bx*uydx
 tmp1 = tmp1*tmp2 
 call FFT_PS(tmp1,tmpk1)
 nonlinbky = nonlinbky + tmpk1
 
-field = ukx
-call derivex(bky,tmpk1)
-call FFT_SP(field,tmp1)
-call FFT_SP(tmpk1,tmp2)
+tmpk1 = ukx
+call derivex(bky,tmpk2)
+call FFT_SP(tmpk1,tmp1)
+call FFT_SP(tmpk2,tmp2)
 ! ux*bydx
 tmp1 = tmp1*tmp2
 call FFT_PS(tmp1,tmpk1)
 nonlinbky = nonlinbky - tmpk1
 
-field = uky
-call derivey(bky,tmpk1)
-call FFT_SP(field,tmp1)
-call FFT_SP(tmpk1,tmp2)
+tmpk1 = uky
+call derivey(bky,tmpk2)
+call FFT_SP(tmpk1,tmp1)
+call FFT_SP(tmpk2,tmp2)
 ! uy*bydy
 tmp1 = tmp1*tmp2 
 call FFT_PS(tmp1,tmpk1)
 nonlinbky = nonlinbky - tmpk1
 
-field = bky
-call derivex(ukx,tmpk1)
-call FFT_SP(field,tmp1)
-call FFT_SP(tmpk1,tmp2)
+tmpk1 = bky
+call derivex(ukx,tmpk2)
+call FFT_SP(tmpk1,tmp1)
+call FFT_SP(tmpk2,tmp2)
 ! by*uxdx
 tmp1 = tmp1*tmp2
 call FFT_PS(tmp1,tmpk1)

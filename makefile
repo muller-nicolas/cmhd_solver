@@ -2,6 +2,7 @@
 # Compiler and flags
 FC = gfortran
 FFLAGS = -O3 -fopenmp
+DEBUG = #-g -fbacktrace -fcheck=all -Wall
 LDFLAGS = -L/usr/local/Cellar/fftw/3.3.10_1/lib -I/usr/local/Cellar/fftw/3.3.10_1/include
 LIBS = -lfftw3 -lfftw3_threads -lm
 PYTHON = /usr/local/opt/python@3.9/bin/python3.9
@@ -24,7 +25,7 @@ SRC = parameters.f90 FFTW_mod.f90 adaptive_mod.f90 spectral_mod.f90 cMHD_mod.f90
 
 # Build and run CMHD2D
 CMHD2D: $(SRC)
-	$(FC) $(FFLAGS) $(LDFLAGS) $(LIBS) $(SRC) -o CMHD2D.exe
+	$(FC) $(FFLAGS) $(LDFLAGS) $(DEBUG) $(LIBS) $(SRC) -o CMHD2D.exe
 
 run_cmhd: CMHD2D
 	./CMHD2D

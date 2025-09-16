@@ -22,29 +22,47 @@ use outputs
 
 implicit none
 
-double precision Ek(Nh,N)
 double precision t1, t2
 double precision ta, time, timests, phase
 
-double complex :: ukx0(Nh,N), uky0(Nh,N), bkx0(Nh,N), bky0(Nh,N), rhok0(Nh,N)
-double complex :: ukx1(Nh,N), uky1(Nh,N), bkx1(Nh,N), bky1(Nh,N), rhok1(Nh,N)
-double complex :: ukx2(Nh,N), uky2(Nh,N), bkx2(Nh,N), bky2(Nh,N), rhok2(Nh,N)
-! double complex :: ukx3(Nh,N), uky3(Nh,N), bkx3(Nh,N), bky3(Nh,N), rhok3(Nh,N)
-! double complex :: ukx4(Nh,N), uky4(Nh,N), bkx4(Nh,N), bky4(Nh,N), rhok4(Nh,N)
-double complex :: nonlinrhok0(Nh,N), nonlinukx0(Nh,N), nonlinuky0(Nh,N), nonlinbkx0(Nh,N), nonlinbky0(Nh,N)
-double complex :: nonlinrhok1(Nh,N), nonlinukx1(Nh,N), nonlinuky1(Nh,N), nonlinbkx1(Nh,N), nonlinbky1(Nh,N)
-! double complex :: nonlinrhok2(Nh,N), nonlinukx2(Nh,N), nonlinuky2(Nh,N), nonlinbkx2(Nh,N), nonlinbky2(Nh,N)
-! double complex :: nonlinrhok3(Nh,N), nonlinukx3(Nh,N), nonlinuky3(Nh,N), nonlinbkx3(Nh,N), nonlinbky3(Nh,N)
-double complex :: fukx(Nh,N), fuky(Nh,N)
+! double complex :: ukx0(Nh,N), uky0(Nh,N), bkx0(Nh,N), bky0(Nh,N), rhok0(Nh,N)
+! double complex :: ukx1(Nh,N), uky1(Nh,N), bkx1(Nh,N), bky1(Nh,N), rhok1(Nh,N)
+! double complex :: ukx2(Nh,N), uky2(Nh,N), bkx2(Nh,N), bky2(Nh,N), rhok2(Nh,N)
+! ! double complex :: ukx3(Nh,N), uky3(Nh,N), bkx3(Nh,N), bky3(Nh,N), rhok3(Nh,N)
+! ! double complex :: ukx4(Nh,N), uky4(Nh,N), bkx4(Nh,N), bky4(Nh,N), rhok4(Nh,N)
+! double complex :: nonlinrhok0(Nh,N), nonlinukx0(Nh,N), nonlinuky0(Nh,N), nonlinbkx0(Nh,N), nonlinbky0(Nh,N)
+! double complex :: nonlinrhok1(Nh,N), nonlinukx1(Nh,N), nonlinuky1(Nh,N), nonlinbkx1(Nh,N), nonlinbky1(Nh,N)
+! ! double complex :: nonlinrhok2(Nh,N), nonlinukx2(Nh,N), nonlinuky2(Nh,N), nonlinbkx2(Nh,N), nonlinbky2(Nh,N)
+! ! double complex :: nonlinrhok3(Nh,N), nonlinukx3(Nh,N), nonlinuky3(Nh,N), nonlinbkx3(Nh,N), nonlinbky3(Nh,N)
+! double complex :: fukx(Nh,N), fuky(Nh,N)
+
+double complex, allocatable :: ukx1(:,:), uky1(:,:), bkx1(:,:), bky1(:,:), rhok1(:,:)
+double complex, allocatable :: ukx2(:,:), uky2(:,:), bkx2(:,:), bky2(:,:), rhok2(:,:)
+! double complex, allocatable :: ukx3(:,:), uky3(:,:), bkx3(:,:), bky3(:,:), rhok3(:,:)
+! double complex, allocatable :: ukx4(:,:), uky4(:,:), bkx4(:,:), bky4(:,:), rhok4(:,:)
+double complex, allocatable :: nonlinrhok0(:,:), nonlinukx0(:,:), nonlinuky0(:,:), nonlinbkx0(:,:), nonlinbky0(:,:)
+double complex, allocatable :: nonlinrhok1(:,:), nonlinukx1(:,:), nonlinuky1(:,:), nonlinbkx1(:,:), nonlinbky1(:,:)
+! double complex, allocatable :: nonlinrhok2(:,:), nonlinukx2(:,:), nonlinuky2(:,:), nonlinbkx2(:,:), nonlinbky2(:,:)
+! double complex, allocatable :: nonlinrhok3(:,:), nonlinukx3(:,:), nonlinuky3(:,:), nonlinbkx3(:,:), nonlinbky3(:,:)
+double complex, allocatable :: fukx(:,:), fuky(:,:)
 
 integer i, j, it, corr
 character (len=11) :: animR='restart-'
+
+allocate(ukx1(Nh,N), uky1(Nh,N), bkx1(Nh,N), bky1(Nh,N), rhok1(Nh,N))
+allocate(ukx2(Nh,N), uky2(Nh,N), bkx2(Nh,N), bky2(Nh,N), rhok2(Nh,N))
+! allocate(ukx3(Nh,N), uky3(Nh,N), bkx3(Nh,N), bky3(Nh,N), rhok3(Nh,N))
+! allocate(ukx4(Nh,N), uky4(Nh,N), bkx4(Nh,N), bky4(Nh,N), rhok4(Nh,N))
+allocate(nonlinrhok0(Nh,N), nonlinukx0(Nh,N), nonlinuky0(Nh,N), nonlinbkx0(Nh,N), nonlinbky0(Nh,N))
+allocate(nonlinrhok1(Nh,N), nonlinukx1(Nh,N), nonlinuky1(Nh,N), nonlinbkx1(Nh,N), nonlinbky1(Nh,N))
+! allocate(nonlinrhok2(Nh,N), nonlinukx2(Nh,N), nonlinuky2(Nh,N), nonlinbkx2(Nh,N), nonlinbky2(Nh,N))
+! allocate(nonlinrhok3(Nh,N), nonlinukx3(Nh,N), nonlinuky3(Nh,N), nonlinbkx3(Nh,N), nonlinbky3(Nh,N))
+allocate(fukx(Nh,N), fuky(Nh,N))    
 
 ! nthreads = omp_get_max_threads()
 call omp_set_num_threads(nthreads)
 print *,"Using",nthreads,"threads"
 
-! call cpu_time(time=t1)
 t1 = omp_get_wtime()
 
 !**************Initialization
@@ -60,37 +78,36 @@ call Initk
 !***************** In case of no restart the code starts down here
 if (nrestart .ne. 0) then
 
-open(30, file='out_parameter', status='new', form='formatted')
-write(30,*) deltaT, ndeltaT, inrj, kinj, ispec, ifields, N, dk
-close(30)
+    open(30, file='out_parameter', status='new', form='formatted')
+    write(30,*) deltaT, ndeltaT, inrj, kinj, ispec, ifields, N, dk
+    close(30)
 
-! Initilize velocity field
-call RandomInit(ukx0,uky0)
-
-! Do one iteration of the time-stepping for AB2
-call RHS(rhok0,ukx0,uky0,bkx0,bky0,nonlinrhok0,nonlinukx0,nonlinuky0,nonlinbkx0,nonlinbky0)
-
-rhok1 = rhok0 + deltaT*nonlinrhok0
-ukx1  = ukx0  + deltaT*nonlinukx0
-uky1  = uky0  + deltaT*nonlinuky0
-bkx1  = bkx0  + deltaT*nonlinbkx0
-bky1  = bky0  + deltaT*nonlinbky0
-end if
+    ! Initilize velocity field
+    call RandomInit(ukx1,uky1)
 
 !****************** In case of restart the code starts below *************
-if (nrestart .eq. 0) then
-open(66, file = 'restart', status = 'old',form='unformatted')
-read(66) rhok1(:,:),ukx1(:,:),uky1(:,:),bkx1(:,:),bky1(:,:)
-read(66) rhok0(:,:),ukx0(:,:),uky0(:,:),bkx0(:,:),bky0(:,:)
-read(66) nonlinrhok0(:,:),nonlinukx0(:,:),nonlinuky0(:,:),nonlinbkx0(:,:),nonlinbky0(:,:)
-read(66) nonlinrhok1(:,:),nonlinukx1(:,:),nonlinuky1(:,:),nonlinbkx1(:,:),nonlinbky1(:,:)
-close(66)
+elseif (nrestart .eq. 0) then
+    open(66, file = 'restart', status = 'old',form='unformatted')
+    read(66) rhok1(:,:),ukx1(:,:),uky1(:,:),bkx1(:,:),bky1(:,:)
+    ! read(66) rhok0(:,:),ukx0(:,:),uky0(:,:),bkx0(:,:),bky0(:,:)
+    ! read(66) nonlinrhok0(:,:),nonlinukx0(:,:),nonlinuky0(:,:),nonlinbkx0(:,:),nonlinbky0(:,:)
+    ! read(66) nonlinrhok1(:,:),nonlinukx1(:,:),nonlinuky1(:,:),nonlinbkx1(:,:),nonlinbky1(:,:)
+    close(66)
 end if
+
+! Do one iteration of the time-stepping for AB2
+call RHS(rhok1,ukx1,uky1,bkx1,bky1,nonlinrhok0,nonlinukx0,nonlinuky0,nonlinbkx0,nonlinbky0)
+
+rhok1 = rhok1 + deltaT*nonlinrhok0
+ukx1  = ukx1  + deltaT*nonlinukx0
+uky1  = uky1  + deltaT*nonlinuky0
+bkx1  = bkx1  + deltaT*nonlinbkx0
+bky1  = bky1  + deltaT*nonlinbky0
 
 ! Initialize forcing in ux0 and uy0
 call GaussianF(fukx,fuky)
 ! call RandomF(fukx,fuky)
-corr = corr0/deltaT
+corr = int(corr0/deltaT)
 
 !************************************************************************
 !*****Time evolution: Adams-Bashforth
@@ -240,14 +257,12 @@ end do ! end of the temporal loop
 ! Save fields in spectral space for restart
 write(animR(9:11),'(i3)') istore_fields
 open(30, file = animR, status = 'new',form='unformatted')
-write(30) rhok1(:,:),ukx1(:,:),uky1(:,:),bkx1(:,:),bky1(:,:)
-write(30) rhok0(:,:),ukx0(:,:),uky0(:,:),bkx0(:,:),bky0(:,:)
-write(30) nonlinrhok0(:,:),nonlinukx0(:,:),nonlinuky0(:,:),nonlinbkx0(:,:),nonlinbky0(:,:)
-write(30) nonlinrhok1(:,:),nonlinukx1(:,:),nonlinuky1(:,:),nonlinbkx1(:,:),nonlinbky1(:,:)
+write(30) rhok2(:,:),ukx2(:,:),uky2(:,:),bkx2(:,:),bky2(:,:)
+! write(30) rhok1(:,:),ukx1(:,:),uky1(:,:),bkx1(:,:),bky1(:,:)
+! write(30) nonlinrhok0(:,:),nonlinukx0(:,:),nonlinuky0(:,:),nonlinbkx0(:,:),nonlinbky0(:,:)
+! write(30) nonlinrhok1(:,:),nonlinukx1(:,:),nonlinuky1(:,:),nonlinbkx1(:,:),nonlinbky1(:,:)
 close(30)
 
-
-! call cpu_time(time=t2)
 t2 = omp_get_wtime()
 write(*,*) "cpu time", t2-t1
 call end_fftw ! Deallocate plans
@@ -269,7 +284,6 @@ use spectral_mod
 use outputs
 ! Initial random field spectra
 implicit none
-double precision uxtmp(N,N), uytmp(N,N)
 double precision phase, EU, kmn, kmx !, spectri, knc
 double complex :: ukxi(Nh,N), ukyi(Nh,N)
 integer i, j
@@ -286,7 +300,7 @@ do i = 1, N
         phase = 2*pi*rand()
         ukyi(1,i) = (cos(phase) + imag*sin(phase)) / sqrt(kd(1,i))
     endif
-    do j = 2, Nh
+    do j = 2, Nh-1
         if ((kd(j,i).le.kmx).and.(kd(j,i).ge.kmn)) then
             phase = 2*pi*rand()
             ukxi(j,i) = 2*(cos(phase) + imag*sin(phase)) / sqrt(kd(j,i))
@@ -294,36 +308,20 @@ do i = 1, N
             ukyi(j,i) = 2*(cos(phase) + imag*sin(phase)) / sqrt(kd(j,i))
         endif
     end do
+    if ((kd(Nh,i).le.kmx).and.(kd(Nh,i).ge.kmn)) then
+        phase = 2*pi*rand()
+        ukxi(Nh,i) = (cos(phase) + imag*sin(phase)) / sqrt(kd(Nh,i))
+        phase = 2*pi*rand()
+        ukyi(Nh,i) = (cos(phase) + imag*sin(phase)) / sqrt(kd(Nh,i))
+    endif
 end do
 
-! call srand(seed)
-! ukxi=0. 
-! ukyi=0. 
-! do i = 1, N
-!     do j = 1, Nh
-!         knc = (kinj - real(i-1) - real(j-1))**4
-!         spectri = dexp(-knc*100.)
-!         theta = rand()*2.*pi
-!         ukxi(j,i) = spectri*(cos(theta) + imag*sin(theta))
-!         theta = rand()*2.*pi
-!         ukyi(j,i) = spectri*(cos(theta) + imag*sin(theta))
-!     end do
-! end do
-
 ukxi = kill*ukxi ! Dealiasing
 ukyi = kill*ukyi ! Dealiasing
-call FFT_SP(ukxi,uxtmp)
-call FFT_SP(ukyi,uytmp)
 
-! Normalization
-call energyF(uxtmp,uytmp,EU)
-uxtmp=amp*uxtmp/sqrt(EU)
-uytmp=amp*uytmp/sqrt(EU)
-
-call FFT_PS(uxtmp,ukxi)
-call FFT_PS(uytmp,ukyi)
-ukxi = kill*ukxi ! Dealiasing
-ukyi = kill*ukyi ! Dealiasing
+call energy(ukxi,ukyi,EU)
+ukxi = famp*ukxi/sqrt(EU)
+ukyi = famp*ukyi/sqrt(EU)
 
 RETURN
 END SUBROUTINE RandomInit
@@ -370,14 +368,13 @@ kmn = dk**2
 kmx = (kinj*dk)**2
 Akx=0.
 Aky=0.
+
 !$omp parallel do private(i,j,phase)
 do i = 1, N
-    phase = 2*pi*rand()
     if ((kd(1,i).le.kmx).and.(kd(1,i).ge.kmn)) then
-        Akx(1,i) = (cos(phase) + imag*sin(phase)) / sqrt(kd(1,i))
-    endif
-    phase = 2*pi*rand()
-    if ((kd(1,i).le.kmx).and.(kd(1,i).ge.kmn)) then
+        phase = 2*pi*rand()
+        Akx(1,i) = (cos(phase) + imag*sin(phase)) / sqrt(kd(1,i)) ! CHECK: kd/dk?
+        phase = 2*pi*rand()
         Aky(1,i) = (cos(phase) + imag*sin(phase)) / sqrt(kd(1,i))
     endif
     do j = 2, Nh-1
@@ -390,12 +387,10 @@ do i = 1, N
             Aky(j,i) = 2*(cos(phase) + imag*sin(phase)) / sqrt(kd(j,i))
         endif
     end do
-    phase = 2*pi*rand()
     if ((kd(Nh,i).le.kmx).and.(kd(Nh,i).ge.kmn)) then
+        phase = 2*pi*rand()
         Akx(Nh,i) = (cos(phase) + imag*sin(phase)) / sqrt(kd(Nh,i))
-    endif
-    phase = 2*pi*rand()
-    if ((kd(Nh,i).le.kmx).and.(kd(Nh,i).ge.kmn)) then
+        phase = 2*pi*rand()
         Aky(Nh,i) = (cos(phase) + imag*sin(phase)) / sqrt(kd(Nh,i))
     endif
 end do
@@ -436,6 +431,7 @@ integer i, j
 ! phase = rand()
 ! call random_number(phase)
 ! print *,phase
+
 !$omp parallel do private(i,j,phase)
 do i = 1, N
     phase = 2*pi*rand()

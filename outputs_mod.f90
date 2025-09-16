@@ -7,6 +7,9 @@ use adaptive_mod
 use spectral_mod
 implicit none
 
+double complex, allocatable :: tmpk1(:,:), tmpk2(:,:) 
+double precision, allocatable :: tmp1(:,:), tmp2(:,:) 
+
 contains
 
 SUBROUTINE save_energy(rhok,ukx,uky,bkx,bky)
@@ -39,9 +42,6 @@ END SUBROUTINE save_energy
 !*****************************************************************
 SUBROUTINE energy(Akx,Aky,Eout)
 !***********compute energies
-use parameters
-use fftw_mod
-implicit none
 double complex, intent(in) :: Akx(Nh,N), Aky(Nh,N)
 double precision, intent(out) :: Eout
 double precision norm 
@@ -66,15 +66,14 @@ END SUBROUTINE energy
 !*****************************************************************
 SUBROUTINE compute_energy(rhok,ukx,uky,bkx,bky,EU,EB,Erho,Erho2,divu,divb)
 !***********compute energies
-use parameters
-use fftw_mod
-implicit none
 double complex, intent(in) :: rhok(Nh,N), ukx(Nh,N), uky(Nh,N), bkx(Nh,N), bky(Nh,N)
 double precision, intent(out) :: EU, EB, Erho, Erho2, divu, divb
-double complex tmpk1(Nh,N), tmpk2(Nh,N) 
-double precision tmp1(N,N), tmp2(N,N) 
+! double complex tmpk1(Nh,N), tmpk2(Nh,N) 
+! double precision tmp1(N,N), tmp2(N,N) 
 double precision norm, norm2
 integer i, j
+
+allocate (tmpk1(Nh,N), tmpk2(Nh,N), tmp1(N,N), tmp2(N,N))
 
 norm = 1./real(N*N)
 norm2 = norm*norm
@@ -126,15 +125,16 @@ end do
 divu = divu*norm
 divb = divb*norm
 
+deallocate (tmpk1, tmpk2, tmp1, tmp2)
+
 RETURN
 END SUBROUTINE compute_energy
 
 !*****************************************************************
 SUBROUTINE energyF(ux,uy,EU)
-use parameters
 !***********compute energy
-implicit none
-double precision EU, ux(N,N), uy(N,N)
+double precision, intent(in) :: ux(N,N), uy(N,N)
+double precision, intent(out) :: EU
 integer i, j
 
 EU = 0.

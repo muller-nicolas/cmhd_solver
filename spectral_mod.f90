@@ -118,17 +118,20 @@ integer i, j, k
 spec1d = 0.
 !$omp parallel do private(i,j,k) reduction(+:spec1d)
 do i = 1, N
-    k = int(sqrt(kd(1,i))/dk+0.5)
+    k = int(sqrt(kd(1,i))/dk+0.5)+1
     if (k .le. Nh) then
         spec1d(k) = spec1d(k) + (abs(Akx(1,i))**2 + abs(Aky(1,i))**2)
     end if
-    do j = 2, Nh
-        k = int(sqrt(kd(j,i))/dk+0.5)
+    do j = 2, Nh-1
+        k = int(sqrt(kd(j,i))/dk+0.5)+1
         if (k .le. Nh) then
-            !$omp atomic
             spec1d(k) = spec1d(k) + 2*(abs(Akx(j,i))**2 + abs(Aky(j,i))**2)
         end if
     end do
+    k = int(sqrt(kd(Nh,i))/dk+0.5)+1
+    if (k .le. Nh) then
+        spec1d(k) = spec1d(k) + (abs(Akx(Nh,i))**2 + abs(Aky(Nh,i))**2)
+    end if
 end do
 spec1d = spec1d/real(N*N*N*N)
 
@@ -145,17 +148,20 @@ integer i, j, k
 spec1d = 0.
 !$omp parallel do private(i,j,k) reduction(+:spec1d)
 do i = 1, N
-    k = int(sqrt(kd(1,i))/dk+0.5)
+    k = int(sqrt(kd(1,i))/dk+0.5)+1
     if (k .le. Nh) then
         spec1d(k) = spec1d(k) + (abs(rhok(1,i))**2)
     end if
-    do j = 2, Nh
-        k = int(sqrt(kd(j,i))/dk+0.5)
+    do j = 2, Nh-1
+        k = int(sqrt(kd(j,i))/dk+0.5)+1
         if (k .le. Nh) then
-            !$omp atomic
             spec1d(k) = spec1d(k) + 2*(abs(rhok(j,i))**2)
         end if
     end do
+    k = int(sqrt(kd(Nh,i))/dk+0.5)
+    if (k .le. Nh) then
+        spec1d(k) = spec1d(k) + (abs(rhok(Nh,i))**2)
+    end if
 end do
 spec1d = spec1d/real(N*N*N*N)
 
@@ -188,6 +194,7 @@ character (len=11) :: sts_byky='STS_byky'
 character (len=12) :: sts_rhokx='STS_rhokx'
 character (len=12) :: sts_rhoky='STS_rhoky'
 
+! TODO: compute local energy in the good way (counting each value once, and unfolding the size to N,N)
 Euxx(:,:) = 0.5*(abs(ukx)**2)
 Euyy(:,:) = 0.5*(abs(uky)**2)
 Ebxx(:,:) = 0.5*(abs(bkx)**2)
