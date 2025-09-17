@@ -1,6 +1,6 @@
 MODULE adaptive_mod
 use, intrinsic :: iso_c_binding
-use parameters
+! use parameters
 use fftw_mod
 implicit none
 

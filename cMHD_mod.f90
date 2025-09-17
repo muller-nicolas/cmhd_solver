@@ -7,6 +7,11 @@ use adaptive_mod
 use spectral_mod
 implicit none
 
+! real(c_double), allocatable, target :: buffer1(:,:), buffer2(:,:)
+
+! real(c_double), pointer :: tmp1(:,:), tmp2(:,:)             ! (N,N)
+! complex(c_double_complex), pointer :: tmpk1(:,:), tmpk2(:,:) ! (Nh,N)
+
 ! TODO: pointers
 double complex  , allocatable :: tmpk1(:,:), tmpk2(:,:)
 double precision, allocatable :: tmp1(:,:), tmp2(:,:) 
@@ -18,7 +23,22 @@ double complex :: rhok(Nh,N), ukx(Nh,N), uky(Nh,N), bkx(Nh,N), bky(Nh,N)
 double complex :: nonlinrhok(Nh,N), nonlinukx(Nh,N), nonlinuky(Nh,N) 
 double complex :: nonlinbkx(Nh,N), nonlinbky(Nh,N)
 
+! allocate(buffer1(2*Nh, N), buffer2(2*Nh,N))   ! factor 2 since complex = 2 reals
+
+! Associate views
+! call c_f_pointer(c_loc(buffer1), tmp1, [N,N])
+! call c_f_pointer(c_loc(buffer1), tmpk1, [Nh,N])
+! call c_f_pointer(c_loc(buffer2), tmp2, [N,N])
+! call c_f_pointer(c_loc(buffer2), tmpk2, [Nh,N])
+
 allocate(tmpk1(Nh,N), tmpk2(Nh,N), tmp1(N,N), tmp2(N,N))
+
+! Testing pointers
+! print *, "ukx",ukx(2,2)
+! print *,"nonlinukx",nonlinukx(2,2)
+! call test_rhs(ukx,nonlinukx)
+! print *, "RHS"
+! print *, "ukx",ukx(2,2)
 
 call RHS1(rhok,ukx,uky,nonlinrhok)
 call RHS2(ukx,uky,bkx,bky,nonlinukx)
@@ -34,6 +54,7 @@ call RHS5(ukx,uky,bkx,bky,nonlinbky)
 ! nonlinbky  = kill * nonlinbky
 
 deallocate(tmpk1, tmpk2, tmp1, tmp2)
+! deallocate(buffer1, buffer2)
 
 END SUBROUTINE RHS
 
@@ -282,5 +303,29 @@ if (aa .ne. aa) then
 endif
 
 END SUBROUTINE check_nan
+
+SUBROUTINE test_rhs(ukx,nonlinukx)
+! Subroutine for testing pointers
+double complex, intent(in)  :: ukx(Nh,N)
+double complex, intent(out) :: nonlinukx(Nh,N)
+! double precision, pointer :: tmp1(:,:), tmp2(:,:)             ! (N,N)
+! complex(c_double_complex), pointer :: tmpk1(:,:), tmpk2(:,:) ! (Nh,N)
+! uxt = -ux*uxdx - uy*uxdy - by*(curl(b))
+
+! Add linear terms
+nonlinukx = 0.
+
+tmpk1 = ukx
+! call derivex(ukx,tmpk2)
+print *, "tmpk1",tmpk1(2,2)
+call FFT_SP(tmpk1,tmp1)
+! call FFT_SP(tmpk2,tmp2)
+! ! ux*uxdx
+! tmp1 = tmp1*tmp2 
+call FFT_PS(tmp1,tmpk1)
+print *, "tmpk1",tmpk1(2,2)
+nonlinukx = nonlinukx - tmpk1
+
+END SUBROUTINE test_rhs
 
 END MODULE cMHD_mod

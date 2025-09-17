@@ -1,14 +1,18 @@
 # Makefile
 # Compiler and flags
 FC = gfortran
-FFLAGS = -O3 -fopenmp
+FFLAGS = -O3 -fopenmp -march=native -funroll-loops -ftree-vectorize
 DEBUG = #-g -fbacktrace -fcheck=all -Wall
 LDFLAGS = -L/usr/local/Cellar/fftw/3.3.10_1/lib -I/usr/local/Cellar/fftw/3.3.10_1/include
 LIBS = -lfftw3 -lfftw3_threads -lm
 PYTHON = /usr/local/opt/python@3.9/bin/python3.9
 
 # Adastra
+# FC = ftn
+# FFLAGS = -O2 -fopenmp
+# DEBUG = 
 # LDFLAGS = -L/opt/cray/pe/fftw/3.3.10.6/x86_genoa/lib -I/opt/cray/pe/fftw/3.3.10.6/x86_genoa/include
+# LIBS = -lfftw3 -lfftw3_threads -lm
 
 # Targets
 # all: run_cmhd run_spectrum1 run_spectrum2 run_spectrum3

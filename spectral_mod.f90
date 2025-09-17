@@ -133,7 +133,7 @@ do i = 1, N
         spec1d(k) = spec1d(k) + (abs(Akx(Nh,i))**2 + abs(Aky(Nh,i))**2)
     end if
 end do
-spec1d = spec1d/real(N*N*N*N)
+spec1d = spec1d/real(N,kind=8)**4
 
 RETURN
 END SUBROUTINE spectrum1D
@@ -163,7 +163,7 @@ do i = 1, N
         spec1d(k) = spec1d(k) + (abs(rhok(Nh,i))**2)
     end if
 end do
-spec1d = spec1d/real(N*N*N*N)
+spec1d = spec1d/real(N,kind=8)**4
 
 RETURN
 END SUBROUTINE spectrumrho1D

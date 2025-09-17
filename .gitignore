@@ -15,5 +15,6 @@ old/
 backup/
 figures/
 fields_mod.f90
+.vscode/
 
 

@@ -48,7 +48,7 @@ double precision, intent(out) :: Eout
 double precision norm 
 integer i, j
 
-norm = 1.0d0/real(N*N*N*N)
+norm = 1.0d0/real(N,kind=8)**4
 Eout = 0.0d0
 
 !$omp parallel do private(i,j) reduction(+:Eout)
@@ -191,12 +191,12 @@ integer, intent(inout) :: istore_fields
 character (len=14) :: animO='out_rho-2D-'
 character (len=13) :: animW='out_wz-2D-'
 character (len=13) :: animJ='out_jz-2D-'
-character (len=15) :: animdiv='out_divb-2D-'
+character (len=15) :: animdivb='out_divb-2D-'
 character (len=15) :: animdivu='out_divu-2D-'
 
 allocate( tmpk1(Nh,N), tmp1(N,N))
 
-tmpk1   = rhok
+tmpk1 = rhok
 write(animO(12:14),'(i3)') istore_fields
 call FFT_SP(tmpk1,tmp1)
 open(30, file = animO, status='replace', form='unformatted', access='stream')
@@ -217,10 +217,10 @@ open(30, file = animJ, status='replace', form='unformatted', access='stream')
 write(30) tmp1(:,:)
 close(30)
 !
-write(animdiv(13:15),'(i3)') istore_fields
+write(animdivb(13:15),'(i3)') istore_fields
 call divergence(bkx,bky,tmpk1)
 call FFT_SP(tmpk1,tmp1)
-open(30, file = animdiv, status='replace', form='unformatted', access='stream')
+open(30, file = animdivb, status='replace', form='unformatted', access='stream')
 write(30) tmp1(:,:)
 close(30)
 !
