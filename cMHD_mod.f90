@@ -47,11 +47,11 @@ call RHS4(ukx,uky,bkx,bky,nonlinbkx)
 call RHS5(ukx,uky,bkx,bky,nonlinbky)
 
 ! Dealiasing
-! nonlinrhok = kill * nonlinrhok
-! nonlinukx  = kill * nonlinukx
-! nonlinuky  = kill * nonlinuky
-! nonlinbkx  = kill * nonlinbkx
-! nonlinbky  = kill * nonlinbky
+nonlinrhok = kill * nonlinrhok
+nonlinukx  = kill * nonlinukx
+nonlinuky  = kill * nonlinuky
+nonlinbkx  = kill * nonlinbkx
+nonlinbky  = kill * nonlinbky
 
 deallocate(tmpk1, tmpk2, tmp1, tmp2)
 ! deallocate(buffer1, buffer2)
@@ -137,7 +137,7 @@ END SUBROUTINE RHS2
 SUBROUTINE RHS3(rhok,ukx,uky,bkx,bky,nonlinuky)
 double complex :: rhok(Nh,N), ukx(Nh,N), uky(Nh,N), bkx(Nh,N), bky(Nh,N)
 double complex :: nonlinuky(Nh,N)
-! uyt = cur(b) - ux*uydx - uy*uydy + (bx-rho)*(curl(b))
+! uyt = curl(b) - ux*uydx - uy*uydy + (bx-rho)*(curl(b))
 
 ! Add linear terms
 call curl(bkx,bky,tmpk2)
@@ -298,8 +298,8 @@ double precision :: aa
 
 aa = sum(abs(arr))
 if (aa .ne. aa) then
-    print *, "ERROR: NaN detected"
-    stop 1
+    ! print *, "ERROR: NaN detected"
+    error stop "ERROR: NaN detected"
 endif
 
 END SUBROUTINE check_nan

@@ -161,21 +161,21 @@ allocate (spec1d(Nh))
 write(animU1D(19:21),'(i3)') istore_sp
 call spectrum1D(ukx,uky,spec1d)
 open(31, file=animU1D, status = 'new',form='formatted')
-write(31,*) spec1d(:)
+write(31,'(1000(1X,ES15.8))') spec1d(:)
 close(31)
 
 ! Save magnetic energy spectrum
 write(animB1D(19:21),'(i3)') istore_sp
 call spectrum1D(bkx,bky,spec1d)
 open(31, file=animB1D, status='new',form='formatted')
-write(31,*) spec1d(:)
+write(31,'(1000(1X,ES15.8))') spec1d(:)
 close(31)
 
 ! Save density spectrum
 call spectrumrho1D(rhok,spec1d)
 write(animrho1D(20:22),'(i3)') istore_sp
 open(31, file=animrho1D, status='new',form='formatted')
-write(31,*) spec1d(:)
+write(31,'(1000(1X,ES15.8))') spec1d(:)
 close(31)
 
 istore_sp = istore_sp + 1

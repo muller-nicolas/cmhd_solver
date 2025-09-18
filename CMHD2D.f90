@@ -67,8 +67,12 @@ call Initk
 !***************** In case of no restart the code starts down here
 if (nrestart .ne. 0) then
 
+    ! open(30, file='out_parameter', status='new', form='formatted')
+    ! write(30,*) deltaT, ndeltaT, inrj, kinj, ispec, ifields, N, dk
+    ! close(30)
     open(30, file='out_parameter', status='new', form='formatted')
-    write(30,*) deltaT, ndeltaT, inrj, kinj, ispec, ifields, N, dk
+    write(30,'(E15.8,1X,I10,1X,I10,1X,E15.8,1X,I10,1X,I10,1X,I10,1X,E15.8)') &
+       deltaT, ndeltaT, inrj, kinj, ispec, ifields, N, dk
     close(30)
 
     ! Initilize velocity field
@@ -93,6 +97,7 @@ bky1  = bky1  + deltaT*nonlinbky0
 ! Initialize forcing in ux0 and uy0
 call GaussianF(fukx,fuky)
 ! call RandomF(fukx,fuky)
+! call PoloidalRandomF(fukx,fuky)
 corr = int(corr0/deltaT)
 
 
@@ -361,7 +366,7 @@ END SUBROUTINE RandomInit
 SUBROUTINE RandomF(Akx,Aky)
 use omp_lib
 use parameters
-use fftw_mod
+! use fftw_mod
 use spectral_mod
 use outputs
 implicit none
@@ -417,7 +422,7 @@ END SUBROUTINE RandomF
 SUBROUTINE GaussianF(Akx,Aky)
 use omp_lib
 use parameters
-use fftw_mod
+! use fftw_mod
 use spectral_mod
 use outputs
 implicit none
@@ -426,21 +431,6 @@ double precision phase, E
 integer i, j
 
 ! TODO: set seed properly
-! integer :: seed_size
-! integer, allocatable :: seed_array(:)
-
-! ! Allocate and set RNG seed
-! call random_seed(size=seed_size)
-! allocate(seed_array(seed_size))
-! seed_array = seed   ! deterministic seed, same numbers each run
-! call random_seed(put=seed_array)
-! deallocate(seed_array)
-
-! call srand(seed)
-! phase = rand()
-! call random_number(phase)
-! print *,phase
-
 !$omp parallel do private(i,j,phase)
 do i = 1, N
     call random_number(phase)
@@ -476,3 +466,58 @@ RETURN
 END SUBROUTINE GaussianF
 
 !*****************************************************************
+
+SUBROUTINE PoloidalRandomF(Akx,Aky)
+use omp_lib
+use parameters
+! use fftw_mod
+use spectral_mod
+use outputs
+implicit none
+double complex, intent(inout) :: Akx(Nh,N), Aky(Nh,N)
+double precision phase, kmn, kmx, E
+integer i, j
+
+kmn = dk**2
+kmx = (kinj*dk)**2
+Akx=0.
+Aky=0.
+
+!$omp parallel do private(i,j,phase)
+do i = 1, N
+    if ((kd(1,i).le.kmx).and.(kd(1,i).ge.kmn)) then
+        call random_number(phase)
+        phase = 2*pi*phase
+        Akx(1,i) = (cos(phase) + imag*sin(phase)) / sqrt(kd(1,i)) ! CHECK: kd/dk?
+    endif
+    do j = 2, Nh-1
+        if ((kd(j,i).le.kmx).and.(kd(j,i).ge.kmn)) then
+            call random_number(phase)
+            phase = 2*pi*phase
+            Akx(j,i) = 2*(cos(phase) + imag*sin(phase)) / sqrt(kd(j,i))
+        endif
+    end do
+    if ((kd(Nh,i).le.kmx).and.(kd(Nh,i).ge.kmn)) then
+        call random_number(phase)
+        phase = 2*pi*phase
+        Akx(Nh,i) = (cos(phase) + imag*sin(phase)) / sqrt(kd(Nh,i))
+    endif
+end do
+
+!$omp parallel do private(i,j)
+do i=1,N
+    do j=1,Nh
+        Aky(j,i) = -Akx(j,i)*kx(i)*ky(j)
+        Akx(j,i) =  Akx(j,i)*ky(j)*ky(j)
+    enddo
+enddo
+
+Akx = kill*Akx ! Dealiasing
+Aky = kill*Aky ! Dealiasing
+
+call energy(Akx,Aky,E)
+Akx = famp*Akx/sqrt(E)
+Aky = famp*Aky/sqrt(E)
+
+RETURN
+END SUBROUTINE PoloidalRandomF
