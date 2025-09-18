@@ -225,8 +225,8 @@ double complex :: nonlinbky(Nh,N)
 ! byt = uydx + bx*uydx - ux*bydx - uy*bydy - by*uxdx
 
 ! Add linear terms 
-call derivex(uky,tmpk1)
-nonlinbky = tmpk1
+call derivex(uky,tmpk2)
+nonlinbky = tmpk2
 
 tmpk1 = bkx
 call FFT_SP(tmpk1,tmp1)
