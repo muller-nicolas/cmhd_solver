@@ -26,7 +26,7 @@ double precision t1, t2
 double precision ta, time, timests, phase
 
 double complex, allocatable :: ukx1(:,:), uky1(:,:), bkx1(:,:), bky1(:,:), rhok1(:,:)
-! double complex, allocatable :: ukx2(:,:), uky2(:,:), bkx2(:,:), bky2(:,:), rhok2(:,:)
+! double complex, allocatable :: ukx2(:,:), uky2(:,:), bkx2(:,:), bky2(:,:), rhok2(:,:) ! RK2
 ! double complex, allocatable :: ukx3(:,:), uky3(:,:), bkx3(:,:), bky3(:,:), rhok3(:,:) ! RK4
 ! double complex, allocatable :: ukx4(:,:), uky4(:,:), bkx4(:,:), bky4(:,:), rhok4(:,:) ! RK4
 double complex, allocatable :: nonlinrhok0(:,:), nonlinukx0(:,:), nonlinuky0(:,:), nonlinbkx0(:,:), nonlinbky0(:,:)
@@ -39,7 +39,7 @@ integer i, j, it, corr
 character (len=11) :: animR='restart-'
 
 allocate(ukx1(Nh,N), uky1(Nh,N), bkx1(Nh,N), bky1(Nh,N), rhok1(Nh,N))
-! allocate(ukx2(Nh,N), uky2(Nh,N), bkx2(Nh,N), bky2(Nh,N), rhok2(Nh,N))
+! allocate(ukx2(Nh,N), uky2(Nh,N), bkx2(Nh,N), bky2(Nh,N), rhok2(Nh,N)) ! RK2
 ! allocate(ukx3(Nh,N), uky3(Nh,N), bkx3(Nh,N), bky3(Nh,N), rhok3(Nh,N)) ! RK4
 ! allocate(ukx4(Nh,N), uky4(Nh,N), bkx4(Nh,N), bky4(Nh,N), rhok4(Nh,N)) ! RK4
 allocate(nonlinrhok0(Nh,N), nonlinukx0(Nh,N), nonlinuky0(Nh,N), nonlinbkx0(Nh,N), nonlinbky0(Nh,N))
@@ -127,14 +127,13 @@ end if
 call check_nan(rhok1) 
 
 
-! ! Runge-Kutta 4 (RK4)
+!!! Runge-Kutta 4 (RK4)
 ! call RHS(rhok0,ukx0,uky0,bkx0,bky0,nonlinrhok0,nonlinukx0,nonlinuky0,nonlinbkx0,nonlinbky0)
 ! rhok1 = rhok0 + deltaT*nonlinrhok0
 ! ukx1  = ukx0  + deltaT*nonlinukx0
 ! uky1  = uky0  + deltaT*nonlinuky0
 ! bkx1  = bkx0  + deltaT*nonlinbkx0
 ! bky1  = bky0  + deltaT*nonlinbky0
-
 
 ! call RHS(rhok1,ukx1,uky1,bkx1,bky1,nonlinrhok1,nonlinukx1,nonlinuky1,nonlinbkx1,nonlinbky1)
 ! rhok3 = rhok0 + 0.5*deltaT*(nonlinrhok1)
@@ -157,57 +156,59 @@ call check_nan(rhok1)
 ! bkx2  = bkx0  + deltaT/6.*( nonlinbkx0 + 2*nonlinbkx1 + 2*nonlinbkx3 + nonlinbkx2)
 ! bky2  = bky0  + deltaT/6.*( nonlinbky0 + 2*nonlinbky1 + 2*nonlinbky3 + nonlinbky2)
 
+! ! Rename variables for saving and use them as initial values for next loop (RK4)
+! rhok1=rhok2
+! ukx1=ukx2
+! uky1=uky2
+! bkx1=bkx2
+! bky1=bky2
 
 
 
 
-! Heun method (RK2)
-! call RHS(rhok0,ukx0,uky0,bkx0,bky0,nonlinrhok0,nonlinukx0,nonlinuky0,nonlinbkx0,nonlinbky0)
-! rhok1 = rhok0 + deltaT*nonlinrhok0
-! ukx1  = ukx0  + deltaT*nonlinukx0
-! uky1  = uky0  + deltaT*nonlinuky0
-! bkx1  = bkx0  + deltaT*nonlinbkx0
-! bky1  = bky0  + deltaT*nonlinbky0
+!!! Heun method (RK2)
+! call RHS(rhok1,ukx1,uky1,bkx1,bky1,nonlinrhok0,nonlinukx0,nonlinuky0,nonlinbkx0,nonlinbky0)
+! rhok2 = rhok1 + deltat*nonlinrhok0
+! ukx2  = ukx1  + deltat*(nonlinukx0 + fukx)
+! uky2  = uky1  + deltat*(nonlinuky0 + fuky)
+! bkx2  = bkx1  + deltat*nonlinbkx0
+! bky2  = bky1  + deltat*nonlinbky0
 
-! call RHS(rhok1,ukx1,uky1,bkx1,bky1,nonlinrhok1,nonlinukx1,nonlinuky1,nonlinbkx1,nonlinbky1)
-! rhok2 = rhok0 + 0.5*deltaT*(nonlinrhok0 + nonlinrhok1)
-! ukx2  = ukx0  + 0.5*deltaT*( nonlinukx0 + nonlinukx1)
-! uky2  = uky0  + 0.5*deltaT*( nonlinuky0 + nonlinuky1)
-! bkx2  = bkx0  + 0.5*deltaT*( nonlinbkx0 + nonlinbkx1)
-! bky2  = bky0  + 0.5*deltaT*( nonlinbky0 + nonlinbky1)
+! call rhs(rhok2,ukx2,uky2,bkx2,bky2,nonlinrhok1,nonlinukx1,nonlinuky1,nonlinbkx1,nonlinbky1)
+! rhok2 = rhok1 + 0.5*deltat*(nonlinrhok0 + nonlinrhok1)
+! ukx2  = ukx1  + 0.5*deltat*( nonlinukx0 + nonlinukx1 + fukx)
+! uky2  = uky1  + 0.5*deltat*( nonlinuky0 + nonlinuky1 + fuky)
+! bkx2  = bkx1  + 0.5*deltat*( nonlinbkx0 + nonlinbkx1)
+! bky2  = bky1  + 0.5*deltat*( nonlinbky0 + nonlinbky1)
+
+! ! rename variables for saving and use them as initial values for next loop (rk2)
+! rhok1=rhok2
+! ukx1=ukx2
+! uky1=uky2
+! bkx1=bkx2
+! bky1=bky2
 
 
 
-
-! Adams-Bashforth method (AB2)
+!!! Adams-Bashforth method (AB2)
 call RHS(rhok1,ukx1,uky1,bkx1,bky1,nonlinrhok1,nonlinukx1,nonlinuky1,nonlinbkx1,nonlinbky1)
 
 rhok1 = rhok1 + deltaT*(1.5*nonlinrhok1 - 0.5*nonlinrhok0)
-ukx1  = ukx1  + deltaT*(1.5*nonlinukx1  - 0.5*nonlinukx0) + fukx
-uky1  = uky1  + deltaT*(1.5*nonlinuky1  - 0.5*nonlinuky0) + fuky
+ukx1  = ukx1  + deltaT*(1.5*nonlinukx1  - 0.5*nonlinukx0 + fukx )
+uky1  = uky1  + deltaT*(1.5*nonlinuky1  - 0.5*nonlinuky0 + fuky )
 bkx1  = bkx1  + deltaT*(1.5*nonlinbkx1  - 0.5*nonlinbkx0)
 bky1  = bky1  + deltaT*(1.5*nonlinbky1  - 0.5*nonlinbky0)
 
 ! call dissipation(rhok1,ukx1,uky1,bkx1,bky1)
 
 ! Rename variables for saving and use them as initial values for next loop (AB2)
-! rhok1=rhok2
-! ukx1=ukx2
-! uky1=uky2
-! bkx1=bkx2
-! bky1=bky2
 nonlinrhok0=nonlinrhok1
 nonlinukx0=nonlinukx1
 nonlinuky0=nonlinuky1
 nonlinbkx0=nonlinbkx1
 nonlinbky0=nonlinbky1
 
-! Rename variables for saving and use them as initial values for next loop (RK2 and RK4)
-! rhok0=rhok2
-! ukx0=ukx2
-! uky0=uky2
-! bkx0=bkx2
-! bky0=bky2
+
 
 !**************** Write quantities
 ! Compute and write energy
@@ -266,13 +267,13 @@ write(*,*) "cpu time", t2-t1
 call end_fftw ! Deallocate plans
 
 deallocate(ukx1, uky1, bkx1, bky1, rhok1)
-! deallocate(ukx2, uky2, bkx2, bky2, rhok2)
-! deallocate(ukx3, uky3, bkx3, bky3, rhok3)
-! deallocate(ukx4, uky4, bkx4, bky4, rhok4)
+! deallocate(ukx2, uky2, bkx2, bky2, rhok2) ! RK2
+! deallocate(ukx3, uky3, bkx3, bky3, rhok3) ! RK4
+! deallocate(ukx4, uky4, bkx4, bky4, rhok4) ! RK4
 deallocate(nonlinrhok0, nonlinukx0, nonlinuky0, nonlinbkx0, nonlinbky0)
 deallocate(nonlinrhok1, nonlinukx1, nonlinuky1, nonlinbkx1, nonlinbky1)
-! deallocate(nonlinrhok2, nonlinukx2, nonlinuky2, nonlinbkx2, nonlinbky2)
-! deallocate(nonlinrhok3, nonlinukx3, nonlinuky3, nonlinbkx3, nonlinbky3)
+! deallocate(nonlinrhok2, nonlinukx2, nonlinuky2, nonlinbkx2, nonlinbky2) ! RK4
+! deallocate(nonlinrhok3, nonlinukx3, nonlinuky3, nonlinbkx3, nonlinbky3) ! RK4
 deallocate(fukx, fuky)
 
 print *, 'OK'

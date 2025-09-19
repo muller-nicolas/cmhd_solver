@@ -16,7 +16,7 @@ filenames_y = ['STS_Euxx_y', 'STS_Euyy_y', 'STS_Ebxx_y', 'STS_Ebyy_y']
 filenames_u = ['STS_uxkx', 'STS_uxky', 'STS_uykx', 'STS_uyky']
 filenames_b = ['STS_bxkx', 'STS_bxky', 'STS_bykx', 'STS_byky']
 filenames_r = ['STS_rhokx', 'STS_rhoky']
-filenames = filenames_u
+filenames = filenames_b
 
 def spatiotemporal(filename, ti, tf):
     print(filename)
@@ -24,6 +24,10 @@ def spatiotemporal(filename, ti, tf):
     Nt = len(time)
     sts = np.fromfile(filename)
     sts = sts[::2] + 1j*sts[1::2]
+    # filename2 = filename.replace('u','b') # For z+ and z-
+    # sts2 = np.fromfile(filename2)
+    # sts2 = sts2[::2] + 1j*sts2[1::2]
+    # sts = sts - sts2
     if len(sts)==Nt*N:
         sts = sts.reshape(Nt,N)
         FFF = sts[ti:tf,:]

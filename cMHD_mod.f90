@@ -13,8 +13,8 @@ implicit none
 ! complex(c_double_complex), pointer :: tmpk1(:,:), tmpk2(:,:) ! (Nh,N)
 
 ! TODO: pointers
-double complex  , allocatable :: tmpk1(:,:), tmpk2(:,:)
-double precision, allocatable :: tmp1(:,:), tmp2(:,:) 
+double complex  , allocatable :: tmpk1(:,:), tmpk2(:,:), tmpk3(:,:)
+double precision, allocatable :: tmp1(:,:), tmp2(:,:), tmp3(:,:)
 
 contains
 
@@ -34,7 +34,7 @@ double precision :: kx3, ky3, k4
 ! call c_f_pointer(c_loc(buffer2), tmp2, [N,N])
 ! call c_f_pointer(c_loc(buffer2), tmpk2, [Nh,N])
 
-allocate(tmpk1(Nh,N), tmpk2(Nh,N), tmp1(N,N), tmp2(N,N))
+allocate(tmpk1(Nh,N), tmpk2(Nh,N), tmpk3(Nh,N), tmp1(N,N), tmp2(N,N), tmp3(N,N))
 
 ! Testing pointers
 ! print *, "ukx",ukx(2,2)
@@ -81,7 +81,7 @@ end do
 ! nonlinbkx  = kill * nonlinbkx
 ! nonlinbky  = kill * nonlinbky
 
-deallocate(tmpk1, tmpk2, tmp1, tmp2)
+deallocate(tmpk1, tmpk2, tmpk3, tmp1, tmp2, tmp3)
 ! deallocate(buffer1, buffer2)
 
 END SUBROUTINE RHS
@@ -94,34 +94,30 @@ double complex, intent(out) :: nonlinrhok(Nh,N)
 
 ! Add linear terms
 call divergence(ukx,uky,tmpk2)
-
 nonlinrhok = -tmpk2
 
 tmpk1 = rhok
 call FFT_SP(tmpk1,tmp1)
 call FFT_SP(tmpk2,tmp2)
-! rho*(uxdx + uydy)
-tmp1 = tmp1*tmp2
-call FFT_PS(tmp1,tmpk1)
-nonlinrhok = nonlinrhok - tmpk1
+! -rho*(uxdx + uydy)
+tmp3 = -tmp1*tmp2
 
 tmpk1 = ukx
 call derivex(rhok,tmpk2)
 call FFT_SP(tmpk1,tmp1)
 call FFT_SP(tmpk2,tmp2)
-! ux*rhodx
-tmp1 = tmp1*tmp2 
-call FFT_PS(tmp1,tmpk1)
-nonlinrhok = nonlinrhok - tmpk1
+! -ux*rhodx
+tmp3 = tmp3 - tmp1*tmp2 
 
 tmpk1 = uky
 call derivey(rhok,tmpk2)
 call FFT_SP(tmpk1,tmp1)
 call FFT_SP(tmpk2,tmp2)
-! uy*rhody
-tmp1 = tmp1*tmp2 
-call FFT_PS(tmp1,tmpk1)
-nonlinrhok = nonlinrhok - tmpk1
+! -uy*rhody
+tmp3 = tmp3 - tmp1*tmp2 
+
+call FFT_PS(tmp3,tmpk3)
+nonlinrhok = nonlinrhok + tmpk3
 
 END SUBROUTINE RHS1
 
@@ -130,35 +126,31 @@ double complex :: ukx(Nh,N), uky(Nh,N), bkx(Nh,N), bky(Nh,N)
 double complex :: nonlinukx(Nh,N)
 ! uxt = -ux*uxdx - uy*uxdy - by*(curl(b))
 
-! Add linear terms
-nonlinukx = 0.
-
 tmpk1 = ukx
 call derivex(ukx,tmpk2)
 call FFT_SP(tmpk1,tmp1)
 call FFT_SP(tmpk2,tmp2)
-! ux*uxdx
-tmp1 = tmp1*tmp2 
-call FFT_PS(tmp1,tmpk1)
-nonlinukx = nonlinukx - tmpk1
+! -ux*uxdx
+tmp3 = -tmp1*tmp2 
 
 tmpk1 = uky 
 call derivey(ukx,tmpk2)
 call FFT_SP(tmpk1,tmp1)
 call FFT_SP(tmpk2,tmp2)
-! uy*uxdy
-tmp1 = tmp1*tmp2 
-call FFT_PS(tmp1,tmpk1)
-nonlinukx = nonlinukx - tmpk1
+! -uy*uxdy
+tmp3 = tmp3 - tmp1*tmp2 
 
 tmpk1 = bky
 call curl(bkx,bky,tmpk2)
 call FFT_SP(tmpk1,tmp1)
 call FFT_SP(tmpk2,tmp2)
-! by*(bydx - bxdy)
-tmp1 = tmp1*tmp2 
-call FFT_PS(tmp1,tmpk1)
-nonlinukx = nonlinukx - tmpk1
+! -by*(bydx - bxdy)
+tmp3 = tmp3 - tmp1*tmp2 
+
+call FFT_PS(tmp3,tmpk3)
+nonlinukx = tmpk3
+
+! No linear terms
 
 END SUBROUTINE RHS2
 
@@ -176,27 +168,25 @@ tmpk1 = bkx - rhok
 call FFT_SP(tmpk1,tmp1)
 call FFT_SP(tmpk2,tmp2)
 ! (bx-rho)*(bxdy - bydx)
-tmp1 = tmp1*tmp2
-call FFT_PS(tmp1,tmpk1)
-nonlinuky = nonlinuky + tmpk1
+tmp3 = tmp1*tmp2
 
 tmpk1 = ukx
 call derivex(uky,tmpk2)
 call FFT_SP(tmpk1,tmp1)
 call FFT_SP(tmpk2,tmp2)
-! ux*uydx
-tmp1 = tmp1*tmp2 
-call FFT_PS(tmp1,tmpk1)
-nonlinuky = nonlinuky - tmpk1
+! -ux*uydx
+tmp3 = tmp3 - tmp1*tmp2 
 
 tmpk1 = uky
 call derivey(uky,tmpk2)
 call FFT_SP(tmpk1,tmp1)
 call FFT_SP(tmpk2,tmp2)
-! uy*uydy
-tmp1 = tmp1*tmp2 
-call FFT_PS(tmp1,tmpk1)
-nonlinuky = nonlinuky - tmpk1
+! -uy*uydy
+tmp3 = tmp3 - tmp1*tmp2 
+
+call FFT_PS(tmp3,tmpk3)
+
+nonlinuky = nonlinuky + tmpk3
 
 END SUBROUTINE RHS3
 
@@ -214,36 +204,31 @@ call derivey(ukx,tmpk2)
 call FFT_SP(tmpk1,tmp1)
 call FFT_SP(tmpk2,tmp2)
 ! by*uxdy
-tmp1 = tmp1*tmp2 
-call FFT_PS(tmp1,tmpk1)
-nonlinbkx = nonlinbkx + tmpk1
+tmp3 = tmp1*tmp2 
 
 tmpk1 = ukx
 call derivex(bkx,tmpk2)
 call FFT_SP(tmpk1,tmp1)
 call FFT_SP(tmpk2,tmp2)
-! ux*bxdx
-tmp1 = tmp1*tmp2 
-call FFT_PS(tmp1,tmpk1)
-nonlinbkx = nonlinbkx - tmpk1
+! -ux*bxdx
+tmp3 = tmp3 - tmp1*tmp2 
 
 tmpk1 = uky
 call derivey(bkx,tmpk2)
 call FFT_SP(tmpk1,tmp1)
 call FFT_SP(tmpk2,tmp2)
-! uy*bxdy
-tmp1 = tmp1*tmp2 
-call FFT_PS(tmp1,tmpk1)
-nonlinbkx = nonlinbkx - tmpk1
+! -uy*bxdy
+tmp3 = tmp3 - tmp1*tmp2 
 
 tmpk1 = bkx
 call derivey(uky,tmpk2)
 call FFT_SP(tmpk1,tmp1)
 call FFT_SP(tmpk2,tmp2)
-! bx*uydy
-tmp1 = tmp1*tmp2 
-call FFT_PS(tmp1,tmpk1)
-nonlinbkx = nonlinbkx - tmpk1
+! -bx*uydy
+tmp3 = tmp3 - tmp1*tmp2 
+
+call FFT_PS(tmp3,tmpk3)
+nonlinbkx = nonlinbkx + tmpk3
 
 END SUBROUTINE RHS4
 
@@ -260,36 +245,31 @@ tmpk1 = bkx
 call FFT_SP(tmpk1,tmp1)
 call FFT_SP(tmpk2,tmp2)
 ! bx*uydx
-tmp1 = tmp1*tmp2 
-call FFT_PS(tmp1,tmpk1)
-nonlinbky = nonlinbky + tmpk1
+tmp3 = tmp1*tmp2 
 
 tmpk1 = ukx
 call derivex(bky,tmpk2)
 call FFT_SP(tmpk1,tmp1)
 call FFT_SP(tmpk2,tmp2)
-! ux*bydx
-tmp1 = tmp1*tmp2
-call FFT_PS(tmp1,tmpk1)
-nonlinbky = nonlinbky - tmpk1
+! -ux*bydx
+tmp3 = tmp3 - tmp1*tmp2
 
 tmpk1 = uky
 call derivey(bky,tmpk2)
 call FFT_SP(tmpk1,tmp1)
 call FFT_SP(tmpk2,tmp2)
-! uy*bydy
-tmp1 = tmp1*tmp2 
-call FFT_PS(tmp1,tmpk1)
-nonlinbky = nonlinbky - tmpk1
+! -uy*bydy
+tmp3 = tmp3 - tmp1*tmp2 
 
 tmpk1 = bky
 call derivex(ukx,tmpk2)
 call FFT_SP(tmpk1,tmp1)
 call FFT_SP(tmpk2,tmp2)
-! by*uxdx
-tmp1 = tmp1*tmp2
-call FFT_PS(tmp1,tmpk1)
-nonlinbky = nonlinbky - tmpk1
+! -by*uxdx
+tmp3 = tmp3 - tmp1*tmp2
+
+call FFT_PS(tmp3,tmpk3)
+nonlinbky = nonlinbky + tmpk3
 
 END SUBROUTINE RHS5
 
