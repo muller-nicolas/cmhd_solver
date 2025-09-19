@@ -7,7 +7,7 @@ vmin = -30
 vmax = -10
 P = np.loadtxt('out_parameter')
 N = int(P[6]) # N
-kmax = N//2
+kmax = N//3
 
 cmap = plt.cm.Blues
 
@@ -59,7 +59,7 @@ for i,filename in enumerate(filenames):
     OM = Omega.shape[0] // 2
     OM2 = len(w) // 2
     dT = Omega.shape[0]
-    sz = dT // 10
+    sz = dT // 3
 
     plot = ax[i].imshow(np.log(Omega[OM-sz:OM+sz,:]), extent=(k[0],k[-1],w[OM2-sz],w[OM2+sz]), aspect='auto', cmap=cmap, vmin=vmin, vmax=vmax)
     # plot = ax[i].imshow(np.log(Omega[OM-sz:OM+sz,:]), extent=(k[0],k[-1],w[OM2-sz],w[OM2+sz]), aspect='auto', cmap=cmap, vmin=vmin, vmax=vmax)

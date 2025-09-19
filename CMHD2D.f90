@@ -65,7 +65,7 @@ call init_fftw
 call Initk
 
 !***************** In case of no restart the code starts down here
-if (nrestart .ne. 0) then
+if (nrestart .eq. 0) then
 
     ! open(30, file='out_parameter', status='new', form='formatted')
     ! write(30,*) deltaT, ndeltaT, inrj, kinj, ispec, ifields, N, dk
@@ -74,12 +74,16 @@ if (nrestart .ne. 0) then
     write(30,'(E15.8,1X,I10,1X,I10,1X,E15.8,1X,I10,1X,I10,1X,I10,1X,E15.8)') &
        deltaT, ndeltaT, inrj, kinj, ispec, ifields, N, dk
     close(30)
+    open(31, file='out_dissipation', status='new', form='formatted')
+    write(31,'(E15.8,1X,E15.8,1X,E15.8,1X,E15.8)') &
+       nu0, eta, alpha, disp
+    close(31)
 
     ! Initilize velocity field
     call RandomInit(ukx1,uky1)
 
 !****************** In case of restart the code starts below *************
-elseif (nrestart .eq. 0) then
+elseif (nrestart .ne. 0) then
     open(66, file = 'restart', status = 'old',form='unformatted')
     read(66) rhok1(:,:),ukx1(:,:),uky1(:,:),bkx1(:,:),bky1(:,:)
     close(66)
@@ -95,8 +99,8 @@ bkx1  = bkx1  + deltaT*nonlinbkx0
 bky1  = bky1  + deltaT*nonlinbky0
 
 ! Initialize forcing in ux0 and uy0
-call GaussianF(fukx,fuky)
-! call RandomF(fukx,fuky)
+! call GaussianF(fukx,fuky)
+call RandomF(fukx,fuky)
 ! call PoloidalRandomF(fukx,fuky)
 corr = int(corr0/deltaT)
 
@@ -184,7 +188,7 @@ uky1  = uky1  + deltaT*(1.5*nonlinuky1  - 0.5*nonlinuky0) + fuky
 bkx1  = bkx1  + deltaT*(1.5*nonlinbkx1  - 0.5*nonlinbkx0)
 bky1  = bky1  + deltaT*(1.5*nonlinbky1  - 0.5*nonlinbky0)
 
-call dissipation(rhok1,ukx1,uky1,bkx1,bky1)
+! call dissipation(rhok1,ukx1,uky1,bkx1,bky1)
 
 ! Rename variables for saving and use them as initial values for next loop (AB2)
 ! rhok1=rhok2

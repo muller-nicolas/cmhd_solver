@@ -22,6 +22,9 @@ SUBROUTINE RHS(rhok,ukx,uky,bkx,bky,nonlinrhok,nonlinukx,nonlinuky,nonlinbkx,non
 double complex :: rhok(Nh,N), ukx(Nh,N), uky(Nh,N), bkx(Nh,N), bky(Nh,N)
 double complex :: nonlinrhok(Nh,N), nonlinukx(Nh,N), nonlinuky(Nh,N) 
 double complex :: nonlinbkx(Nh,N), nonlinbky(Nh,N)
+double complex :: dissip_nu, dissip_eta
+integer :: i,j
+double precision :: kx3, ky3, k4
 
 ! allocate(buffer1(2*Nh, N), buffer2(2*Nh,N))   ! factor 2 since complex = 2 reals
 
@@ -46,12 +49,37 @@ call RHS3(rhok,ukx,uky,bkx,bky,nonlinuky)
 call RHS4(ukx,uky,bkx,bky,nonlinbkx)
 call RHS5(ukx,uky,bkx,bky,nonlinbky)
 
+! dissipation + dealiasing
+! Hyperviscosity (bilaplacian) + hypoviscosity + dispersion
+! TODO: Dissipation in rho? Do we need dissipation at large scale?
+!$omp parallel do private(i,j,kx3,ky3,k4,dissip_nu,dissip_eta) 
+do i = 1, N
+    kx3 = kx(i)**3
+    do j = 1, Nh
+        k4 = kd(j,i)*kd(j,i)
+        ky3 = ky(j)**3
+        dissip_nu = (k4*nu  + alpha + imag*disp*(kx3+ky3))
+        dissip_eta= (k4*eta + alpha + imag*disp*(kx3+ky3))
+        nonlinrhok(j,i) = kill(j,i)*(nonlinrhok(j,i) - dissip_nu*rhok(j,i))
+        nonlinukx (j,i) = kill(j,i)*(nonlinukx (j,i) - dissip_nu*ukx(j,i))
+        nonlinuky (j,i) = kill(j,i)*(nonlinuky (j,i) - dissip_nu*uky(j,i))
+        nonlinbkx (j,i) = kill(j,i)*(nonlinbkx (j,i) - dissip_eta*bkx(j,i))
+        nonlinbky (j,i) = kill(j,i)*(nonlinbky (j,i) - dissip_eta*bky(j,i))
+    end do
+end do
+
+! nonlinrhok = nonlinrhok - (kd*kd*nu + alpha)*rhok
+! nonlinukx = nonlinukx - (kd*kd*nu + alpha)*ukx
+! nonlinuky = nonlinuky - (kd*kd*nu + alpha)*uky
+! nonlinbkx = nonlinbkx - (kd*kd*eta + alpha)*bkx
+! nonlinbky = nonlinbky - (kd*kd*eta + alpha)*bky
+
 ! Dealiasing
-nonlinrhok = kill * nonlinrhok
-nonlinukx  = kill * nonlinukx
-nonlinuky  = kill * nonlinuky
-nonlinbkx  = kill * nonlinbkx
-nonlinbky  = kill * nonlinbky
+! nonlinrhok = kill * nonlinrhok
+! nonlinukx  = kill * nonlinukx
+! nonlinuky  = kill * nonlinuky
+! nonlinbkx  = kill * nonlinbkx
+! nonlinbky  = kill * nonlinbky
 
 deallocate(tmpk1, tmpk2, tmp1, tmp2)
 ! deallocate(buffer1, buffer2)
@@ -297,35 +325,11 @@ double complex, intent(in) :: arr(Nh, N)   ! double precision complex
 double precision :: aa
 
 aa = sum(abs(arr))
-if (aa .ne. aa) then
+if (isnan(aa)) then
     ! print *, "ERROR: NaN detected"
     error stop "ERROR: NaN detected"
 endif
 
 END SUBROUTINE check_nan
-
-SUBROUTINE test_rhs(ukx,nonlinukx)
-! Subroutine for testing pointers
-double complex, intent(in)  :: ukx(Nh,N)
-double complex, intent(out) :: nonlinukx(Nh,N)
-! double precision, pointer :: tmp1(:,:), tmp2(:,:)             ! (N,N)
-! complex(c_double_complex), pointer :: tmpk1(:,:), tmpk2(:,:) ! (Nh,N)
-! uxt = -ux*uxdx - uy*uxdy - by*(curl(b))
-
-! Add linear terms
-nonlinukx = 0.
-
-tmpk1 = ukx
-! call derivex(ukx,tmpk2)
-print *, "tmpk1",tmpk1(2,2)
-call FFT_SP(tmpk1,tmp1)
-! call FFT_SP(tmpk2,tmp2)
-! ! ux*uxdx
-! tmp1 = tmp1*tmp2 
-call FFT_PS(tmp1,tmpk1)
-print *, "tmpk1",tmpk1(2,2)
-nonlinukx = nonlinukx - tmpk1
-
-END SUBROUTINE test_rhs
 
 END MODULE cMHD_mod

@@ -31,9 +31,9 @@ for i in range(nfiles):
     filename_b = filenames_EB[i]
     filename_r = filenames_rho[i]
 
-    Su = np.loadtxt(filename_u)  # load data from file
-    Sb = np.loadtxt(filename_b)  # load data from file
-    Sr = np.loadtxt(filename_r)  # load data from file
+    Su = np.loadtxt(filename_u, dtype=np.float128)  # load data from file
+    Sb = np.loadtxt(filename_b, dtype=np.float128)  # load data from file
+    Sr = np.loadtxt(filename_r, dtype=np.float128)  # load data from file
 
     ax[0].loglog(k[1:kmax],Su[1:kmax],label=f't{i+1}', color=colors[i])
     ax[1].loglog(k[1:kmax],Sb[1:kmax],label=f't{i+1}', color=colors[i])
@@ -58,6 +58,9 @@ x = k[ksta:kmax]
 ax[0].plot(x, (x/x[0])**(-3.)*Su[ksta], color='k', ls='--',linewidth=1.)
 ax[1].plot(x, (x/x[0])**(-3.)*Sb[ksta], color='k', ls='--',linewidth=1.)
 ax[2].plot(x, (x/x[0])**(-3.)*Sr[ksta], color='k', ls='--',linewidth=1.)
+ax[0].plot(x, (x/x[0])**(-6.)*Su[ksta], color='k', ls='--',linewidth=1.)
+ax[1].plot(x, (x/x[0])**(-6.)*Sb[ksta], color='k', ls='--',linewidth=1.)
+ax[2].plot(x, (x/x[0])**(-6.)*Sr[ksta], color='k', ls='--',linewidth=1.)
 
 ax[0].legend(ncol=2)
 
