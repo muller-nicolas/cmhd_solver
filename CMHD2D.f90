@@ -5,9 +5,10 @@
 
 ! TODO: Read parameters from file after compilation
 ! TODO: Pointers for fields in memory (Reduce memory usage)
+! TODO: write also forcing parameters in file
+! TODO: save fields: rho, ux, uy, bx, by, and remove and adapt the restart
 ! TODO: handle precision globally (for practical purposes)
 ! TODO: Parallelisation: GPU
-! TODO: continue openMP
 ! TODO: RK4 (Numerical precision)
 
 Program CMHD
@@ -25,28 +26,32 @@ implicit none
 double precision t1, t2
 double precision ta, time, timests, phase
 
-double complex, allocatable :: ukx1(:,:), uky1(:,:), bkx1(:,:), bky1(:,:), rhok1(:,:)
-! double complex, allocatable :: ukx2(:,:), uky2(:,:), bkx2(:,:), bky2(:,:), rhok2(:,:) ! RK2
-! double complex, allocatable :: ukx3(:,:), uky3(:,:), bkx3(:,:), bky3(:,:), rhok3(:,:) ! RK4
-! double complex, allocatable :: ukx4(:,:), uky4(:,:), bkx4(:,:), bky4(:,:), rhok4(:,:) ! RK4
-double complex, allocatable :: nonlinrhok0(:,:), nonlinukx0(:,:), nonlinuky0(:,:), nonlinbkx0(:,:), nonlinbky0(:,:)
-double complex, allocatable :: nonlinrhok1(:,:), nonlinukx1(:,:), nonlinuky1(:,:), nonlinbkx1(:,:), nonlinbky1(:,:)
-! double complex, allocatable :: nonlinrhok2(:,:), nonlinukx2(:,:), nonlinuky2(:,:), nonlinbkx2(:,:), nonlinbky2(:,:) ! RK4
-! double complex, allocatable :: nonlinrhok3(:,:), nonlinukx3(:,:), nonlinuky3(:,:), nonlinbkx3(:,:), nonlinbky3(:,:) ! RK4
-double complex, allocatable :: fukx(:,:), fuky(:,:)
+double complex, dimension(:,:), allocatable :: ukx1, uky1, bkx1, bky1, rhok1
+double complex, dimension(:,:), allocatable :: nonlinrhok0, nonlinukx0, nonlinuky0, nonlinbkx0, nonlinbky0
+double complex, dimension(:,:), allocatable :: nonlinrhok1, nonlinukx1, nonlinuky1, nonlinbkx1, nonlinbky1
+double complex, dimension(:,:), allocatable :: fukx, fuky, fbkx, fbky
+
+! double complex, dimension(:,:), allocatable :: ukx2, uky2, bkx2, bky2, rhok2 ! RK2
+
+! double complex, dimension(:,:), allocatable :: ukx3, uky3, bkx3, bky3, rhok3 ! RK4
+! double complex, dimension(:,:), allocatable :: ukx4, uky4, bkx4, bky4, rhok4 ! RK4
+! double complex, dimension(:,:), allocatable :: nonlinrhok2, nonlinukx2, nonlinuky2, nonlinbkx2, nonlinbky2 ! RK4
+! double complex, dimension(:,:), allocatable :: nonlinrhok3, nonlinukx3, nonlinuky3, nonlinbkx3, nonlinbky3 ! RK4
 
 integer i, j, it, corr
 character (len=11) :: animR='restart-'
 
 allocate(ukx1(Nh,N), uky1(Nh,N), bkx1(Nh,N), bky1(Nh,N), rhok1(Nh,N))
-! allocate(ukx2(Nh,N), uky2(Nh,N), bkx2(Nh,N), bky2(Nh,N), rhok2(Nh,N)) ! RK2
-! allocate(ukx3(Nh,N), uky3(Nh,N), bkx3(Nh,N), bky3(Nh,N), rhok3(Nh,N)) ! RK4
-! allocate(ukx4(Nh,N), uky4(Nh,N), bkx4(Nh,N), bky4(Nh,N), rhok4(Nh,N)) ! RK4
 allocate(nonlinrhok0(Nh,N), nonlinukx0(Nh,N), nonlinuky0(Nh,N), nonlinbkx0(Nh,N), nonlinbky0(Nh,N))
 allocate(nonlinrhok1(Nh,N), nonlinukx1(Nh,N), nonlinuky1(Nh,N), nonlinbkx1(Nh,N), nonlinbky1(Nh,N))
+allocate(fukx(Nh,N), fuky(Nh,N), fbkx(Nh,N), fbky(Nh,N))
+
+! allocate(ukx2(Nh,N), uky2(Nh,N), bkx2(Nh,N), bky2(Nh,N), rhok2(Nh,N)) ! RK2
+
+! allocate(ukx3(Nh,N), uky3(Nh,N), bkx3(Nh,N), bky3(Nh,N), rhok3(Nh,N)) ! RK4
+! allocate(ukx4(Nh,N), uky4(Nh,N), bkx4(Nh,N), bky4(Nh,N), rhok4(Nh,N)) ! RK4
 ! allocate(nonlinrhok2(Nh,N), nonlinukx2(Nh,N), nonlinuky2(Nh,N), nonlinbkx2(Nh,N), nonlinbky2(Nh,N)) ! RK4
 ! allocate(nonlinrhok3(Nh,N), nonlinukx3(Nh,N), nonlinuky3(Nh,N), nonlinbkx3(Nh,N), nonlinbky3(Nh,N)) ! RK4
-allocate(fukx(Nh,N), fuky(Nh,N))    
 
 ! nthreads = omp_get_max_threads()
 call omp_set_num_threads(nthreads)
@@ -80,7 +85,8 @@ if (nrestart .eq. 0) then
     close(31)
 
     ! Initilize velocity field
-    call RandomInit(ukx1,uky1)
+    ! call RandomInit(ukx1,uky1)
+    call GaussianInit(ukx1,uky1)
 
 !****************** In case of restart the code starts below *************
 elseif (nrestart .ne. 0) then
@@ -89,20 +95,21 @@ elseif (nrestart .ne. 0) then
     close(66)
 end if
 
+! Initialize forcing in ux0 and uy0
+! call GaussianF(fukx,fuky)
+call RandomF(fukx,fuky)
+! call RandomF(fbkx,fbky)
+! call PoloidalRandomF(fukx,fuky)
+corr = int(corr0/deltaT)
+
 ! Do one iteration of the time-stepping for AB2
 call RHS(rhok1,ukx1,uky1,bkx1,bky1,nonlinrhok0,nonlinukx0,nonlinuky0,nonlinbkx0,nonlinbky0)
 
 rhok1 = rhok1 + deltaT*nonlinrhok0
-ukx1  = ukx1  + deltaT*nonlinukx0
-uky1  = uky1  + deltaT*nonlinuky0
-bkx1  = bkx1  + deltaT*nonlinbkx0
-bky1  = bky1  + deltaT*nonlinbky0
-
-! Initialize forcing in ux0 and uy0
-! call GaussianF(fukx,fuky)
-call RandomF(fukx,fuky)
-! call PoloidalRandomF(fukx,fuky)
-corr = int(corr0/deltaT)
+ukx1  = ukx1  + deltaT*(nonlinukx0 + fukx)
+uky1  = uky1  + deltaT*(nonlinuky0 + fuky)
+bkx1  = bkx1  + deltaT*(nonlinbkx0 + fbkx)
+bky1  = bky1  + deltaT*(nonlinbky0 + fbky)
 
 
 !************************************************************************
@@ -120,6 +127,12 @@ if (mod(it,corr).eq.0) then
             call random_number(phase)
             phase = 2*pi*phase
             fuky(j,i) = fuky(j,i) * (cos(phase) + imag*sin(phase))
+            ! call random_number(phase)
+            ! phase = 2*pi*phase
+            ! fbkx(j,i) = fbkx(j,i) * (cos(phase) + imag*sin(phase))
+            ! call random_number(phase)
+            ! phase = 2*pi*phase
+            ! fbky(j,i) = fbky(j,i) * (cos(phase) + imag*sin(phase))
         end do
     end do
 end if
@@ -196,8 +209,8 @@ call RHS(rhok1,ukx1,uky1,bkx1,bky1,nonlinrhok1,nonlinukx1,nonlinuky1,nonlinbkx1,
 rhok1 = rhok1 + deltaT*(1.5*nonlinrhok1 - 0.5*nonlinrhok0)
 ukx1  = ukx1  + deltaT*(1.5*nonlinukx1  - 0.5*nonlinukx0 + fukx )
 uky1  = uky1  + deltaT*(1.5*nonlinuky1  - 0.5*nonlinuky0 + fuky )
-bkx1  = bkx1  + deltaT*(1.5*nonlinbkx1  - 0.5*nonlinbkx0)
-bky1  = bky1  + deltaT*(1.5*nonlinbky1  - 0.5*nonlinbky0)
+bkx1  = bkx1  + deltaT*(1.5*nonlinbkx1  - 0.5*nonlinbkx0 + fbkx )
+bky1  = bky1  + deltaT*(1.5*nonlinbky1  - 0.5*nonlinbky0 + fbky )
 
 ! call dissipation(rhok1,ukx1,uky1,bkx1,bky1)
 
@@ -340,6 +353,51 @@ ukyi = amp*ukyi/sqrt(EU)
 
 RETURN
 END SUBROUTINE RandomInit
+
+SUBROUTINE GaussianInit(Akx,Aky)
+use omp_lib
+use parameters
+use spectral_mod
+use outputs
+implicit none
+double complex, intent(inout) :: Akx(Nh,N), Aky(Nh,N)
+double precision phase, E
+integer i, j
+
+! TODO: set seed properly
+!$omp parallel do private(i,j,phase)
+do i = 1, N
+    call random_number(phase)
+    phase = 2*pi*phase
+    Akx(1,i) = (cos(phase) + imag*sin(phase))*exp(-.5*((sqrt(kd(1,i))/dk-kinj)/(width))**2)
+    call random_number(phase)
+    phase = 2*pi*phase
+    Aky(1,i) = (cos(phase) + imag*sin(phase))*exp(-.5*((sqrt(kd(1,i))/dk-kinj)/(width))**2)
+    do j = 2, Nh-1
+        call random_number(phase)
+        phase = 2*pi*phase
+        Akx(j,i) = 2*(cos(phase) + imag*sin(phase))*exp(-.5*((sqrt(kd(j,i))/dk-kinj)/(width))**2)
+        call random_number(phase)
+        phase = 2*pi*phase
+        Aky(j,i) = 2*(cos(phase) + imag*sin(phase))*exp(-.5*((sqrt(kd(j,i))/dk-kinj)/(width))**2)
+    end do
+    call random_number(phase)
+    phase = 2*pi*phase
+    Akx(Nh,i) = (cos(phase) + imag*sin(phase))*exp(-.5*((sqrt(kd(Nh,i))/dk-kinj)/(width))**2)
+    call random_number(phase)
+    phase = 2*pi*phase
+    Aky(Nh,i) = (cos(phase) + imag*sin(phase))*exp(-.5*((sqrt(kd(Nh,i))/dk-kinj)/(width))**2)
+end do
+
+Akx = kill*Akx ! Dealiasing
+Aky = kill*Aky ! Dealiasing
+
+call energy(Akx,Aky,E)
+Akx = amp*Akx/sqrt(E)
+Aky = amp*Aky/sqrt(E)
+
+RETURN
+END SUBROUTINE GaussianInit
 
 !*****************************************************************
 ! Random forcing spectrum

@@ -3,7 +3,7 @@ import numpy as np
 
 ti = 100 # Bounds of data to process
 tf = -1 # Bounds of data to process
-vmin = -30
+vmin = -20
 vmax = -10
 P = np.loadtxt('out_parameter')
 N = int(P[6]) # N
@@ -16,7 +16,7 @@ filenames_y = ['STS_Euxx_y', 'STS_Euyy_y', 'STS_Ebxx_y', 'STS_Ebyy_y']
 filenames_u = ['STS_uxkx', 'STS_uxky', 'STS_uykx', 'STS_uyky']
 filenames_b = ['STS_bxkx', 'STS_bxky', 'STS_bykx', 'STS_byky']
 filenames_r = ['STS_rhokx', 'STS_rhoky']
-filenames = filenames_b
+filenames = filenames_u
 
 def spatiotemporal(filename, ti, tf):
     print(filename)

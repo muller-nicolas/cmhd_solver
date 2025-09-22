@@ -204,47 +204,47 @@ close(uSTS)
 
 tmpk1(:,:) = 0.5*(abs(ukx)**2)
 OPEN (uSTS, file=STS_Euxx_x, access='stream', position='append',form='unformatted')
-write(uSTS) tmpk1(1,:) ! ky=0
+write(uSTS) tmpk1(2,:) ! ky=0
 close(uSTS)
 OPEN (uSTS, file=STS_Euxx_y, access='stream', position='append',form='unformatted')
-write(uSTS) tmpk1(:,1) ! kx=0
+write(uSTS) tmpk1(:,2) ! kx=0
 close(uSTS)
 
 tmpk1(:,:) = 0.5*(abs(uky)**2)
 OPEN (uSTS, file=STS_Euyy_x, access='stream', position='append',form='unformatted')
-write(uSTS) tmpk1(1,:) ! ky=0
+write(uSTS) tmpk1(2,:) ! ky=0
 close(uSTS)
 OPEN (uSTS, file=STS_Euyy_y, access='stream', position='append',form='unformatted')
-write(uSTS) tmpk1(:,1) ! kx=0
+write(uSTS) tmpk1(:,2) ! kx=0
 close(uSTS)
 
 tmpk1(:,:) = 0.5*(abs(bkx)**2)
 OPEN (uSTS, file=STS_Ebxx_x, access='stream', position='append',form='unformatted')
-write(uSTS) tmpk1(1,:) ! ky=0
+write(uSTS) tmpk1(2,:) ! ky=0
 close(uSTS)
 OPEN (uSTS, file=STS_Ebxx_y, access='stream', position='append',form='unformatted')
-write(uSTS) tmpk1(:,1) ! kx=0
+write(uSTS) tmpk1(:,2) ! kx=0
 close(uSTS)
 
 tmpk1(:,:) = 0.5*(abs(bky)**2)
 OPEN (uSTS, file=STS_Ebyy_x, access='stream', position='append',form='unformatted')
-write(uSTS) tmpk1(1,:) ! ky=0
+write(uSTS) tmpk1(2,:) ! ky=0
 close(uSTS)
 OPEN (uSTS, file=STS_Ebyy_y, access='stream', position='append',form='unformatted')
-write(uSTS) tmpk1(:,1) ! kx=0
+write(uSTS) tmpk1(:,2) ! kx=0
 close(uSTS)
 
 OPEN (uSTS, file=sts_uxkx, access='stream', position='append',form='unformatted')
-write(uSTS) ukx(1,:) ! ky=0
+write(uSTS) ukx(2,:) ! ky=0
 close(uSTS)
 OPEN (uSTS, file=sts_uxky, access='stream', position='append',form='unformatted')
-write(uSTS) ukx(:,1) ! kx=0
+write(uSTS) ukx(:,2) ! kx=0
 close(uSTS)
 OPEN (uSTS, file=sts_uykx, access='stream', position='append',form='unformatted')
-write(uSTS) uky(1,:) !ky=0
+write(uSTS) uky(2,:) !ky=0
 close(uSTS)
 OPEN (uSTS, file=sts_uyky, access='stream', position='append',form='unformatted')
-write(uSTS) uky(:,1) !kx=0
+write(uSTS) uky(:,2) !kx=0
 close(uSTS)
 OPEN (uSTS, file=sts_bxkx, access='stream', position='append',form='unformatted')
 write(uSTS) bkx(1,:) ! ky=0

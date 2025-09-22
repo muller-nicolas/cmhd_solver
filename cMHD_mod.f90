@@ -7,14 +7,13 @@ use adaptive_mod
 use spectral_mod
 implicit none
 
-! real(c_double), allocatable, target :: buffer1(:,:), buffer2(:,:)
-
-! real(c_double), pointer :: tmp1(:,:), tmp2(:,:)             ! (N,N)
-! complex(c_double_complex), pointer :: tmpk1(:,:), tmpk2(:,:) ! (Nh,N)
+! real(c_double), allocatable, target :: buffer1(:,:), buffer2(:,:), buffer3(:,:)
+! real(c_double), pointer :: tmp1(:,:), tmp2(:,:), tmp3(:,:)               ! (N,N)
+! complex(c_double_complex), pointer :: tmpk1(:,:), tmpk2(:,:), tmpk3(:,:) ! (Nh,N)
 
 ! TODO: pointers
-double complex  , allocatable :: tmpk1(:,:), tmpk2(:,:), tmpk3(:,:)
-double precision, allocatable :: tmp1(:,:), tmp2(:,:), tmp3(:,:)
+double complex  , dimension(:,:), allocatable :: tmpk1, tmpk2, tmpk3
+double precision, dimension(:,:), allocatable :: tmp1, tmp2, tmp3
 
 contains
 
@@ -26,22 +25,9 @@ double complex :: dissip_nu, dissip_eta
 integer :: i,j
 double precision :: kx3, ky3, k4
 
-! allocate(buffer1(2*Nh, N), buffer2(2*Nh,N))   ! factor 2 since complex = 2 reals
-
-! Associate views
-! call c_f_pointer(c_loc(buffer1), tmp1, [N,N])
-! call c_f_pointer(c_loc(buffer1), tmpk1, [Nh,N])
-! call c_f_pointer(c_loc(buffer2), tmp2, [N,N])
-! call c_f_pointer(c_loc(buffer2), tmpk2, [Nh,N])
-
-allocate(tmpk1(Nh,N), tmpk2(Nh,N), tmpk3(Nh,N), tmp1(N,N), tmp2(N,N), tmp3(N,N))
-
-! Testing pointers
-! print *, "ukx",ukx(2,2)
-! print *,"nonlinukx",nonlinukx(2,2)
-! call test_rhs(ukx,nonlinukx)
-! print *, "RHS"
-! print *, "ukx",ukx(2,2)
+! call init_rhs
+allocate (tmp1(N,N), tmp2(N,N), tmp3(N,N))
+allocate (tmpk1(Nh,N), tmpk2(Nh,N), tmpk3(Nh,N))
 
 call RHS1(rhok,ukx,uky,nonlinrhok)
 call RHS2(ukx,uky,bkx,bky,nonlinukx)
@@ -82,7 +68,7 @@ end do
 ! nonlinbky  = kill * nonlinbky
 
 deallocate(tmpk1, tmpk2, tmpk3, tmp1, tmp2, tmp3)
-! deallocate(buffer1, buffer2)
+! call end_rhs
 
 END SUBROUTINE RHS
 
@@ -91,6 +77,8 @@ SUBROUTINE RHS1(rhok,ukx,uky,nonlinrhok)
 double complex, intent(in) :: rhok(Nh,N), ukx(Nh,N), uky(Nh,N)
 double complex, intent(out) :: nonlinrhok(Nh,N)
 ! rhot = -divu - rho*(divu) - ux*rhox - uy*rhoy
+
+! call init_rhs
 
 ! Add linear terms
 call divergence(ukx,uky,tmpk2)
@@ -119,12 +107,16 @@ tmp3 = tmp3 - tmp1*tmp2
 call FFT_PS(tmp3,tmpk3)
 nonlinrhok = nonlinrhok + tmpk3
 
+! call end_rhs
+
 END SUBROUTINE RHS1
 
 SUBROUTINE RHS2(ukx,uky,bkx,bky,nonlinukx)
 double complex :: ukx(Nh,N), uky(Nh,N), bkx(Nh,N), bky(Nh,N)
 double complex :: nonlinukx(Nh,N)
 ! uxt = -ux*uxdx - uy*uxdy - by*(curl(b))
+
+! call init_rhs
 
 tmpk1 = ukx
 call derivex(ukx,tmpk2)
@@ -152,12 +144,16 @@ nonlinukx = tmpk3
 
 ! No linear terms
 
+! call end_rhs
+
 END SUBROUTINE RHS2
 
 SUBROUTINE RHS3(rhok,ukx,uky,bkx,bky,nonlinuky)
 double complex :: rhok(Nh,N), ukx(Nh,N), uky(Nh,N), bkx(Nh,N), bky(Nh,N)
 double complex :: nonlinuky(Nh,N)
 ! uyt = curl(b) - ux*uydx - uy*uydy + (bx-rho)*(curl(b))
+
+! call init_rhs
 
 ! Add linear terms
 call curl(bkx,bky,tmpk2)
@@ -188,12 +184,16 @@ call FFT_PS(tmp3,tmpk3)
 
 nonlinuky = nonlinuky + tmpk3
 
+! call end_rhs
+
 END SUBROUTINE RHS3
 
 SUBROUTINE RHS4(ukx,uky,bkx,bky,nonlinbkx)
 double complex :: ukx(Nh,N), uky(Nh,N), bkx(Nh,N), bky(Nh,N)
 double complex :: nonlinbkx(Nh,N)
 ! bxt = -dyuy + by*uxdy - ux*bxdx - uy*bxdy - bx*uydy
+
+! call init_rhs
 
 ! Add linear terms
 call derivey(uky,tmpk1)
@@ -230,12 +230,16 @@ tmp3 = tmp3 - tmp1*tmp2
 call FFT_PS(tmp3,tmpk3)
 nonlinbkx = nonlinbkx + tmpk3
 
+! call end_rhs
+
 END SUBROUTINE RHS4
 
 SUBROUTINE RHS5(ukx,uky,bkx,bky,nonlinbky)
 double complex :: ukx(Nh,N), uky(Nh,N), bkx(Nh,N), bky(Nh,N)
 double complex :: nonlinbky(Nh,N)
 ! byt = uydx + bx*uydx - ux*bydx - uy*bydy - by*uxdx
+
+! call init_rhs
 
 ! Add linear terms 
 call derivex(uky,tmpk2)
@@ -270,6 +274,8 @@ tmp3 = tmp3 - tmp1*tmp2
 
 call FFT_PS(tmp3,tmpk3)
 nonlinbky = nonlinbky + tmpk3
+
+! call end_rhs
 
 END SUBROUTINE RHS5
 
@@ -306,10 +312,39 @@ double precision :: aa
 
 aa = sum(abs(arr))
 if (isnan(aa)) then
-    ! print *, "ERROR: NaN detected"
     error stop "ERROR: NaN detected"
 endif
 
 END SUBROUTINE check_nan
+
+! SUBROUTINE init_rhs
+! allocate(buffer1(2*Nh, N), buffer2(2*Nh,N), buffer3(2*Nh,N)) ! factor 2 since complex = 2 reals
+
+! ! Associate views
+! call c_f_pointer(c_loc(buffer1), tmp1, [N,N])
+! call c_f_pointer(c_loc(buffer1), tmpk1, [Nh,N])
+! call c_f_pointer(c_loc(buffer2), tmp2, [N,N])
+! call c_f_pointer(c_loc(buffer2), tmpk2, [Nh,N])
+! call c_f_pointer(c_loc(buffer3), tmp3, [N,N])
+! call c_f_pointer(c_loc(buffer3), tmpk3, [Nh,N])
+
+! END SUBROUTINE init_rhs
+
+! SUBROUTINE end_rhs
+! deallocate(buffer1, buffer2, buffer3)
+! END SUBROUTINE end_rhs
+
+! SUBROUTINE init_rhs
+! allocate(buffer(2*Nh, N)) ! factor 2 since complex = 2 reals
+
+! ! Associate views
+! call c_f_pointer(c_loc(buffer), tmp, [N,N])
+! call c_f_pointer(c_loc(buffer), tmpk, [Nh,N])
+
+! END SUBROUTINE init_rhs
+
+! SUBROUTINE end_rhs
+! deallocate(buffer)
+! END SUBROUTINE end_rhs
 
 END MODULE cMHD_mod
