@@ -7,8 +7,8 @@ use adaptive_mod
 use spectral_mod
 implicit none
 
-double complex, allocatable :: tmpk1(:,:), tmpk2(:,:) 
-double precision, allocatable :: tmp1(:,:), tmp2(:,:) 
+double complex, dimension(:,:), allocatable :: tmpk1, tmpk2, tmpk3
+double precision, dimension(:,:), allocatable :: tmp1, tmp2, tmp3 
 double precision, allocatable :: spec1d(:)
 
 contains
@@ -72,7 +72,8 @@ double precision, intent(out) :: EU, EB, Erho, Erho2, divu, divb
 double precision norm, norm2
 integer i, j
 
-allocate (tmpk1(Nh,N), tmpk2(Nh,N), tmp1(N,N), tmp2(N,N))
+allocate (tmpk1(Nh,N), tmpk2(Nh,N), tmpk3(Nh,N))
+allocate (tmp1(N,N), tmp2(N,N), tmp3(N,N))
 
 norm = 1./real(N*N)
 norm2 = norm*norm
@@ -84,28 +85,38 @@ divu = 0.
 divb = 0.
 
 ! TODO: Erho is not properly computed
-!$omp parallel do private(i,j) reduction(+:EU,EB,Erho,Erho2)
+!$omp parallel do private(i,j) reduction(+:EU,EB)
 do i = 1, N
     EU = EU + (abs(ukx(1,i))**2 + abs(uky(1,i))**2)
     EB = EB + (abs(bkx(1,i))**2 + abs(bky(1,i))**2)
-    Erho = Erho + (1.d0+abs(rhok(1,i)))*(abs(ukx(1,i))**2 + abs(uky(1,i))**2) ! CHECK
-    Erho2 = Erho2 + abs(rhok(1,i))
     do j = 2, Nh-1
         EU = EU + 2*(abs(ukx(j,i))**2 + abs(uky(j,i))**2)
         EB = EB + 2*(abs(bkx(j,i))**2 + abs(bky(j,i))**2)
-        Erho = Erho + 2*(1.d0+abs(rhok(j,i)))*(abs(ukx(j,i))**2 + abs(uky(j,i))**2)
-        Erho2 = Erho2 + abs(rhok(j,i))
     end do
     EU = EU + (abs(ukx(Nh,i))**2 + abs(uky(Nh,i))**2)
     EB = EB + (abs(bkx(Nh,i))**2 + abs(bky(Nh,i))**2)
-    Erho = Erho + (1.d0+abs(rhok(Nh,i)))*(abs(ukx(Nh,i))**2 + abs(uky(Nh,i))**2) ! CHECK
-    Erho2 = Erho2 + abs(rhok(Nh,i))
 end do
 
 EU = EU*norm2
 EB = EB*norm2
-Erho = Erho*norm2
-Erho2 = Erho2*norm2
+
+tmpk1 = rhok
+tmpk2 = ukx
+tmpk3 = uky
+call FFT_SP(tmpk1,tmp1)
+call FFT_SP(tmpk2,tmp2)
+call FFT_SP(tmpk3,tmp3)
+
+!$omp parallel do private(i,j) reduction(+:Erho,Erho2)
+do i = 1, N
+    do j = 1, N
+        Erho = Erho + (1.d0+abs(tmp1(j,i)))*(abs(tmp2(j,i))**2 + abs(tmp3(j,i))**2)
+        Erho2 = Erho2 + abs(tmp1(j,i))
+    end do
+end do
+
+Erho = Erho*norm
+Erho2 = Erho2*norm
 
 call divergence(ukx,uky,tmpk1)
 call divergence(bkx,bky,tmpk2)
@@ -124,7 +135,7 @@ end do
 divu = divu*norm
 divb = divb*norm
 
-deallocate (tmpk1, tmpk2, tmp1, tmp2)
+deallocate (tmpk1, tmpk2, tmpk3, tmp1, tmp2, tmp3)
 
 RETURN
 END SUBROUTINE compute_energy

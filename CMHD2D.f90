@@ -99,17 +99,23 @@ end if
 ! call GaussianF(fukx,fuky)
 call RandomF(fukx,fuky)
 ! call RandomF(fbkx,fbky)
+fbkx = 0.0
+fbky = 0.0
 ! call PoloidalRandomF(fukx,fuky)
 corr = int(corr0/deltaT)
 
-! Do one iteration of the time-stepping for AB2
+!! Do one iteration of the time-stepping for AB2
 call RHS(rhok1,ukx1,uky1,bkx1,bky1,nonlinrhok0,nonlinukx0,nonlinuky0,nonlinbkx0,nonlinbky0)
 
+nonlinukx0 = nonlinukx0 + fukx
+nonlinuky0 = nonlinuky0 + fuky
+nonlinbkx0 = nonlinbkx0 + fbkx 
+nonlinbky0 = nonlinbky0 + fbky
 rhok1 = rhok1 + deltaT*nonlinrhok0
-ukx1  = ukx1  + deltaT*(nonlinukx0 + fukx)
-uky1  = uky1  + deltaT*(nonlinuky0 + fuky)
-bkx1  = bkx1  + deltaT*(nonlinbkx0 + fbkx)
-bky1  = bky1  + deltaT*(nonlinbky0 + fbky)
+ukx1  = ukx1  + deltaT*nonlinukx0
+uky1  = uky1  + deltaT*nonlinuky0
+bkx1  = bkx1  + deltaT*nonlinbkx0
+bky1  = bky1  + deltaT*nonlinbky0
 
 
 !************************************************************************
@@ -127,12 +133,12 @@ if (mod(it,corr).eq.0) then
             call random_number(phase)
             phase = 2*pi*phase
             fuky(j,i) = fuky(j,i) * (cos(phase) + imag*sin(phase))
-            ! call random_number(phase)
-            ! phase = 2*pi*phase
-            ! fbkx(j,i) = fbkx(j,i) * (cos(phase) + imag*sin(phase))
-            ! call random_number(phase)
-            ! phase = 2*pi*phase
-            ! fbky(j,i) = fbky(j,i) * (cos(phase) + imag*sin(phase))
+            call random_number(phase)
+            phase = 2*pi*phase
+            fbkx(j,i) = fbkx(j,i) * (cos(phase) + imag*sin(phase))
+            call random_number(phase)
+            phase = 2*pi*phase
+            fbky(j,i) = fbky(j,i) * (cos(phase) + imag*sin(phase))
         end do
     end do
 end if
@@ -179,14 +185,14 @@ call check_nan(rhok1)
 
 
 
-!!! Heun method (RK2)
+! !!! Heun method (RK2)
 ! call RHS(rhok1,ukx1,uky1,bkx1,bky1,nonlinrhok0,nonlinukx0,nonlinuky0,nonlinbkx0,nonlinbky0)
 ! rhok2 = rhok1 + deltat*nonlinrhok0
 ! ukx2  = ukx1  + deltat*(nonlinukx0 + fukx)
 ! uky2  = uky1  + deltat*(nonlinuky0 + fuky)
 ! bkx2  = bkx1  + deltat*nonlinbkx0
 ! bky2  = bky1  + deltat*nonlinbky0
-
+! ! 
 ! call rhs(rhok2,ukx2,uky2,bkx2,bky2,nonlinrhok1,nonlinukx1,nonlinuky1,nonlinbkx1,nonlinbky1)
 ! rhok2 = rhok1 + 0.5*deltat*(nonlinrhok0 + nonlinrhok1)
 ! ukx2  = ukx1  + 0.5*deltat*( nonlinukx0 + nonlinukx1 + fukx)
@@ -194,7 +200,7 @@ call check_nan(rhok1)
 ! bkx2  = bkx1  + 0.5*deltat*( nonlinbkx0 + nonlinbkx1)
 ! bky2  = bky1  + 0.5*deltat*( nonlinbky0 + nonlinbky1)
 
-! ! rename variables for saving and use them as initial values for next loop (rk2)
+! ! ! rename variables for saving and use them as initial values for next loop (RK2)
 ! rhok1=rhok2
 ! ukx1=ukx2
 ! uky1=uky2
@@ -203,16 +209,18 @@ call check_nan(rhok1)
 
 
 
-!!! Adams-Bashforth method (AB2)
+!! Adams-Bashforth method (AB2)
 call RHS(rhok1,ukx1,uky1,bkx1,bky1,nonlinrhok1,nonlinukx1,nonlinuky1,nonlinbkx1,nonlinbky1)
+nonlinukx1 = nonlinukx1 + fukx
+nonlinuky1 = nonlinuky1 + fuky
+nonlinbkx1 = nonlinbkx1 + fbkx
+nonlinbky1 = nonlinbky1 + fbky
 
 rhok1 = rhok1 + deltaT*(1.5*nonlinrhok1 - 0.5*nonlinrhok0)
-ukx1  = ukx1  + deltaT*(1.5*nonlinukx1  - 0.5*nonlinukx0 + fukx )
-uky1  = uky1  + deltaT*(1.5*nonlinuky1  - 0.5*nonlinuky0 + fuky )
-bkx1  = bkx1  + deltaT*(1.5*nonlinbkx1  - 0.5*nonlinbkx0 + fbkx )
-bky1  = bky1  + deltaT*(1.5*nonlinbky1  - 0.5*nonlinbky0 + fbky )
-
-! call dissipation(rhok1,ukx1,uky1,bkx1,bky1)
+ukx1  = ukx1  + deltaT*(1.5*nonlinukx1  - 0.5*nonlinukx0)
+uky1  = uky1  + deltaT*(1.5*nonlinuky1  - 0.5*nonlinuky0)
+bkx1  = bkx1  + deltaT*(1.5*nonlinbkx1  - 0.5*nonlinbkx0)
+bky1  = bky1  + deltaT*(1.5*nonlinbky1  - 0.5*nonlinbky0)
 
 ! Rename variables for saving and use them as initial values for next loop (AB2)
 nonlinrhok0=nonlinrhok1
@@ -287,7 +295,7 @@ deallocate(nonlinrhok0, nonlinukx0, nonlinuky0, nonlinbkx0, nonlinbky0)
 deallocate(nonlinrhok1, nonlinukx1, nonlinuky1, nonlinbkx1, nonlinbky1)
 ! deallocate(nonlinrhok2, nonlinukx2, nonlinuky2, nonlinbkx2, nonlinbky2) ! RK4
 ! deallocate(nonlinrhok3, nonlinukx3, nonlinuky3, nonlinbkx3, nonlinbky3) ! RK4
-deallocate(fukx, fuky)
+deallocate(fukx, fuky, fbkx, fbky)
 
 print *, 'OK'
 end program CMHD

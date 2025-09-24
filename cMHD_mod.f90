@@ -18,9 +18,8 @@ double precision, dimension(:,:), allocatable :: tmp1, tmp2, tmp3
 contains
 
 SUBROUTINE RHS(rhok,ukx,uky,bkx,bky,nonlinrhok,nonlinukx,nonlinuky,nonlinbkx,nonlinbky)
-double complex :: rhok(Nh,N), ukx(Nh,N), uky(Nh,N), bkx(Nh,N), bky(Nh,N)
-double complex :: nonlinrhok(Nh,N), nonlinukx(Nh,N), nonlinuky(Nh,N) 
-double complex :: nonlinbkx(Nh,N), nonlinbky(Nh,N)
+double complex, dimension(Nh,N) :: rhok, ukx, uky, bkx, bky
+double complex, dimension(Nh,N) :: nonlinrhok, nonlinukx, nonlinuky, nonlinbkx, nonlinbky
 double complex :: dissip_nu, dissip_eta
 integer :: i,j
 double precision :: kx3, ky3, k4
@@ -30,7 +29,7 @@ allocate (tmp1(N,N), tmp2(N,N), tmp3(N,N))
 allocate (tmpk1(Nh,N), tmpk2(Nh,N), tmpk3(Nh,N))
 
 call RHS1(rhok,ukx,uky,nonlinrhok)
-call RHS2(ukx,uky,bkx,bky,nonlinukx)
+call RHS2(rhok,ukx,uky,bkx,bky,nonlinukx)
 call RHS3(rhok,ukx,uky,bkx,bky,nonlinuky)
 call RHS4(ukx,uky,bkx,bky,nonlinbkx)
 call RHS5(ukx,uky,bkx,bky,nonlinbky)
@@ -38,6 +37,7 @@ call RHS5(ukx,uky,bkx,bky,nonlinbky)
 ! dissipation + dealiasing
 ! Hyperviscosity (bilaplacian) + hypoviscosity + dispersion
 ! TODO: Dissipation in rho? Do we need dissipation at large scale?
+! TODO: divergence term in dissipation?
 !$omp parallel do private(i,j,kx3,ky3,k4,dissip_nu,dissip_eta) 
 do i = 1, N
     kx3 = kx(i)**3
@@ -54,19 +54,6 @@ do i = 1, N
     end do
 end do
 
-! nonlinrhok = nonlinrhok - (kd*kd*nu + alpha)*rhok
-! nonlinukx = nonlinukx - (kd*kd*nu + alpha)*ukx
-! nonlinuky = nonlinuky - (kd*kd*nu + alpha)*uky
-! nonlinbkx = nonlinbkx - (kd*kd*eta + alpha)*bkx
-! nonlinbky = nonlinbky - (kd*kd*eta + alpha)*bky
-
-! Dealiasing
-! nonlinrhok = kill * nonlinrhok
-! nonlinukx  = kill * nonlinukx
-! nonlinuky  = kill * nonlinuky
-! nonlinbkx  = kill * nonlinbkx
-! nonlinbky  = kill * nonlinbky
-
 deallocate(tmpk1, tmpk2, tmpk3, tmp1, tmp2, tmp3)
 ! call end_rhs
 
@@ -77,8 +64,6 @@ SUBROUTINE RHS1(rhok,ukx,uky,nonlinrhok)
 double complex, intent(in) :: rhok(Nh,N), ukx(Nh,N), uky(Nh,N)
 double complex, intent(out) :: nonlinrhok(Nh,N)
 ! rhot = -divu - rho*(divu) - ux*rhox - uy*rhoy
-
-! call init_rhs
 
 ! Add linear terms
 call divergence(ukx,uky,tmpk2)
@@ -107,23 +92,32 @@ tmp3 = tmp3 - tmp1*tmp2
 call FFT_PS(tmp3,tmpk3)
 nonlinrhok = nonlinrhok + tmpk3
 
-! call end_rhs
-
 END SUBROUTINE RHS1
 
-SUBROUTINE RHS2(ukx,uky,bkx,bky,nonlinukx)
-double complex :: ukx(Nh,N), uky(Nh,N), bkx(Nh,N), bky(Nh,N)
+SUBROUTINE RHS2(rhok,ukx,uky,bkx,bky,nonlinukx)
+double complex :: rhok(Nh,N), ukx(Nh,N), uky(Nh,N), bkx(Nh,N), bky(Nh,N)
 double complex :: nonlinukx(Nh,N)
-! uxt = -ux*uxdx - uy*uxdy - by*(curl(b))
+double precision :: eps = 1.d-10
+! uxt = -ux*uxdx - uy*uxdy - by*(curl(b))/(1+rho)
 
-! call init_rhs
+! No linear terms
+
+tmpk1 = rhok
+tmpk2 = bky
+call curl(bkx,bky,tmpk3)
+call FFT_SP(tmpk1,tmp1)
+call FFT_SP(tmpk2,tmp2)
+call FFT_SP(tmpk3,tmp3)
+! -by*(bydx - bxdy)/(1+rho)
+tmp3 = -tmp2*tmp3/(1.d0+tmp1+eps)
+! tmp3 = -tmp2*tmp3 ! Taylor
 
 tmpk1 = ukx
 call derivex(ukx,tmpk2)
 call FFT_SP(tmpk1,tmp1)
 call FFT_SP(tmpk2,tmp2)
 ! -ux*uxdx
-tmp3 = -tmp1*tmp2 
+tmp3 = tmp3 - tmp1*tmp2 
 
 tmpk1 = uky 
 call derivey(ukx,tmpk2)
@@ -132,39 +126,47 @@ call FFT_SP(tmpk2,tmp2)
 ! -uy*uxdy
 tmp3 = tmp3 - tmp1*tmp2 
 
-tmpk1 = bky
-call curl(bkx,bky,tmpk2)
+!Pressure term
+tmpk1 = rhok
+call derivex(rhok,tmpk2)
 call FFT_SP(tmpk1,tmp1)
 call FFT_SP(tmpk2,tmp2)
-! -by*(bydx - bxdy)
-tmp3 = tmp3 - tmp1*tmp2 
+tmp3 = tmp3 - tmp2 / (1.d0+tmp1+eps)
 
 call FFT_PS(tmp3,tmpk3)
 nonlinukx = tmpk3
-
-! No linear terms
-
-! call end_rhs
 
 END SUBROUTINE RHS2
 
 SUBROUTINE RHS3(rhok,ukx,uky,bkx,bky,nonlinuky)
 double complex :: rhok(Nh,N), ukx(Nh,N), uky(Nh,N), bkx(Nh,N), bky(Nh,N)
 double complex :: nonlinuky(Nh,N)
-! uyt = curl(b) - ux*uydx - uy*uydy + (bx-rho)*(curl(b))
+double precision :: eps = 1.d-10
+! uyt = - ux*uydx - uy*uydy + (bx+1)*(curl(b))/(1+rho)
 
-! call init_rhs
-
+! nonlinuky = 0.d0 + imag*0.d0
 ! Add linear terms
 call curl(bkx,bky,tmpk2)
 nonlinuky = tmpk2
 
 ! Nonlinear terms
-tmpk1 = bkx - rhok
+tmpk1 = rhok
+tmpk3 = bkx
+! call curl(bkx,bky,tmpk2)
 call FFT_SP(tmpk1,tmp1)
 call FFT_SP(tmpk2,tmp2)
-! (bx-rho)*(bxdy - bydx)
-tmp3 = tmp1*tmp2
+call FFT_SP(tmpk3,tmp3)
+! (bx+1)*(bxdy - bydx) / (1+rho)
+! Not working
+! tmp3 = (1.d0 + tmp3)*tmp2/(1.d0+tmp1+eps)
+! Working
+tmp3 = tmp3*tmp2/(1.d0+tmp1+eps)
+tmp3 = tmp3 - tmp1*tmp2
+tmp3 = tmp3 + 0.5*tmp1**2*tmp2
+! tmp3 = tmp3*(tmp2 - tmp1) ! Taylor
+! tmp3 = tmp2*(1.d0 + tmp3 - tmp1) ! Taylor
+! NOTE: The correct expression is the one not working, wihtout adding the linear term in nonlinuky, but that doesn't work.
+! So I add the linear term and do a Taylor expansion only of that term. TODO 
 
 tmpk1 = ukx
 call derivex(uky,tmpk2)
@@ -180,31 +182,40 @@ call FFT_SP(tmpk2,tmp2)
 ! -uy*uydy
 tmp3 = tmp3 - tmp1*tmp2 
 
+!Pressure term
+tmpk1 = rhok
+call derivey(rhok,tmpk2)
+call FFT_SP(tmpk1,tmp1)
+call FFT_SP(tmpk2,tmp2)
+tmp3 = tmp3 - tmp2 / (1.d0+tmp1+eps)
+
 call FFT_PS(tmp3,tmpk3)
 
-nonlinuky = nonlinuky + tmpk3
-
-! call end_rhs
+nonlinuky = tmpk3 + nonlinuky
 
 END SUBROUTINE RHS3
 
 SUBROUTINE RHS4(ukx,uky,bkx,bky,nonlinbkx)
 double complex :: ukx(Nh,N), uky(Nh,N), bkx(Nh,N), bky(Nh,N)
 double complex :: nonlinbkx(Nh,N)
-! bxt = -dyuy + by*uxdy - ux*bxdx - uy*bxdy - bx*uydy
-
-! call init_rhs
+! bxt = -dyuy - bx*uydy + by*uxdy - ux*bxdx - uy*bxdy 
 
 ! Add linear terms
-call derivey(uky,tmpk1)
-nonlinbkx = -tmpk1
+call derivey(uky,tmpk2)
+nonlinbkx = -tmpk2
+
+tmpk1 = bkx
+call FFT_SP(tmpk1,tmp1)
+call FFT_SP(tmpk2,tmp2)
+! -bx*uydy
+tmp3 = -tmp1*tmp2 
 
 tmpk1 = bky
 call derivey(ukx,tmpk2)
 call FFT_SP(tmpk1,tmp1)
 call FFT_SP(tmpk2,tmp2)
 ! by*uxdy
-tmp3 = tmp1*tmp2 
+tmp3 = tmp3 + tmp1*tmp2 
 
 tmpk1 = ukx
 call derivex(bkx,tmpk2)
@@ -220,17 +231,8 @@ call FFT_SP(tmpk2,tmp2)
 ! -uy*bxdy
 tmp3 = tmp3 - tmp1*tmp2 
 
-tmpk1 = bkx
-call derivey(uky,tmpk2)
-call FFT_SP(tmpk1,tmp1)
-call FFT_SP(tmpk2,tmp2)
-! -bx*uydy
-tmp3 = tmp3 - tmp1*tmp2 
-
 call FFT_PS(tmp3,tmpk3)
 nonlinbkx = nonlinbkx + tmpk3
-
-! call end_rhs
 
 END SUBROUTINE RHS4
 
@@ -238,8 +240,6 @@ SUBROUTINE RHS5(ukx,uky,bkx,bky,nonlinbky)
 double complex :: ukx(Nh,N), uky(Nh,N), bkx(Nh,N), bky(Nh,N)
 double complex :: nonlinbky(Nh,N)
 ! byt = uydx + bx*uydx - ux*bydx - uy*bydy - by*uxdx
-
-! call init_rhs
 
 ! Add linear terms 
 call derivex(uky,tmpk2)
@@ -274,8 +274,6 @@ tmp3 = tmp3 - tmp1*tmp2
 
 call FFT_PS(tmp3,tmpk3)
 nonlinbky = nonlinbky + tmpk3
-
-! call end_rhs
 
 END SUBROUTINE RHS5
 
@@ -332,19 +330,6 @@ END SUBROUTINE check_nan
 
 ! SUBROUTINE end_rhs
 ! deallocate(buffer1, buffer2, buffer3)
-! END SUBROUTINE end_rhs
-
-! SUBROUTINE init_rhs
-! allocate(buffer(2*Nh, N)) ! factor 2 since complex = 2 reals
-
-! ! Associate views
-! call c_f_pointer(c_loc(buffer), tmp, [N,N])
-! call c_f_pointer(c_loc(buffer), tmpk, [Nh,N])
-
-! END SUBROUTINE init_rhs
-
-! SUBROUTINE end_rhs
-! deallocate(buffer)
 ! END SUBROUTINE end_rhs
 
 END MODULE cMHD_mod

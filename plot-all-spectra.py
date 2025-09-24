@@ -46,7 +46,7 @@ ax[0].set_ylabel(r'$E_u(k)$')
 ax[1].set_ylabel(r'$E_b(k)$')
 ax[2].set_ylabel(r'$E_{\rho}(k)$')
 
-ax[0].set_ylim(1.e-20,1.e-1)
+ax[0].set_ylim(1.e-11,1.e1)
 
 ax[0].axvline(kinj, color='k', linestyle='--')
 ax[1].axvline(kinj, color='k', linestyle='--')
@@ -58,9 +58,9 @@ x = k[ksta:kmax]
 ax[0].plot(x, (x/x[0])**(-3.)*Su[ksta], color='k', ls='--',linewidth=1.)
 ax[1].plot(x, (x/x[0])**(-3.)*Sb[ksta], color='k', ls='--',linewidth=1.)
 ax[2].plot(x, (x/x[0])**(-3.)*Sr[ksta], color='k', ls='--',linewidth=1.)
-ax[0].plot(x, (x/x[0])**(-6.)*Su[ksta], color='k', ls='--',linewidth=1.)
-ax[1].plot(x, (x/x[0])**(-6.)*Sb[ksta], color='k', ls='--',linewidth=1.)
-ax[2].plot(x, (x/x[0])**(-6.)*Sr[ksta], color='k', ls='--',linewidth=1.)
+ax[0].plot(x, (x/x[0])**(-2.)*Su[ksta], color='k', ls='--',linewidth=1.)
+ax[1].plot(x, (x/x[0])**(-2.)*Sb[ksta], color='k', ls='--',linewidth=1.)
+ax[2].plot(x, (x/x[0])**(-2.)*Sr[ksta], color='k', ls='--',linewidth=1.)
 
 ax[0].legend(ncol=2)
 
