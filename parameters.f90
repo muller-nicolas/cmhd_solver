@@ -2,31 +2,37 @@ MODULE parameters
 implicit none
 
 public
+! Simulation parameters
 integer, parameter :: N = 128 ! Resolution
 integer, parameter :: Nh = N/2+1  ! Number of wavenumbers
 integer, parameter :: Na = int(N/3)   
 integer :: nthreads = 1  ! Number of omp threads
 double precision, parameter :: deltaT0 = 2.5d-3
-double precision, parameter :: nu0  = 2.d-5 ! viscosity
-double precision, parameter :: alpha  = 0.d-2 ! damping (large-scale)
-double precision :: eta = nu0 ! magnetic viscosity
-
-integer :: istore_sp = 100
-integer :: istore_fields = 100
-integer, parameter :: ndeltaT = 20000
-integer, parameter :: inrj = 20
-integer, parameter :: ispec = 200    !*********must be a multiple of inrj
-integer, parameter :: ifields = 200  !*********must be a multiple of inrj
-double precision, parameter :: kinj = 2.
-double precision, parameter :: disp = 0.d-3  ! without dispersion => 0.d0
-double precision, parameter :: amp = 1.d-2
-double precision, parameter :: famp = 1.d-1   !*********forcing => famp > 0.d0
-double precision, parameter :: width = 5.   !*********forcing width (gaussian forcing)
-double precision, parameter :: corr0 = 1.d-1   !*********forcing correlation 
-integer, parameter :: sts = 1 ! 1 if spatio-temporal spectra are saved, else 0
-integer, parameter :: ists = 10 ! time step for spatio-temporal spectra
 integer, parameter :: nrestart = 0    !*********for a restart => nrestart = 1
 integer, parameter :: seed = 100  ! seed for random number generator
+integer :: istore_sp = 100
+integer :: istore_fields = 100
+
+! Physical parameters
+double precision, parameter :: nu0  = 0.d-5 ! viscosity
+double precision, parameter :: alpha  = 0.d-2 ! damping (large-scale)
+double precision, parameter :: cspeed  = 1.   ! speed of sound
+double precision, parameter :: gamma  = 1.4   ! polytropic index
+double precision :: eta = nu0 ! magnetic viscosity
+integer, parameter :: ndeltaT = 10000
+integer, parameter :: inrj = 10
+integer, parameter :: ispec = 100    !*********must be a multiple of inrj
+integer, parameter :: ifields = 100  !*********must be a multiple of inrj
+
+! IC and forcing parameters
+double precision, parameter :: kinj = 30.
+double precision, parameter :: disp = 0.d-3  ! without dispersion => 0.d0
+double precision, parameter :: amp = 1.d-2
+double precision, parameter :: famp = 0.d-1   !*********forcing => famp > 0.d0
+double precision, parameter :: width = 5.     !*********forcing width (gaussian forcing)
+double precision, parameter :: corr0 = 1.d-1  !*********forcing correlation 
+integer, parameter :: sts = 1   ! 1 if spatio-temporal spectra are saved, else 0
+integer, parameter :: ists = 10 ! time step for spatio-temporal spectra
 
 ! Constants
 double precision, parameter :: pi = 3.141592653589793238d0

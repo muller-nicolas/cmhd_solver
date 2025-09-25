@@ -15,22 +15,22 @@ contains
 
 SUBROUTINE save_energy(rhok,ukx,uky,bkx,bky)
 double complex, intent(in) :: rhok(Nh,N), ukx(Nh,N), uky(Nh,N), bkx(Nh,N), bky(Nh,N)
-double precision :: EU, EB, Erho, Erho2, divu, divb
+double precision :: EU, EB, Erho, Eint, divu, divb
 
-call compute_energy(rhok,ukx,uky,bkx,bky,EU,EB,Erho,Erho2,divu,divb)
+call compute_energy(rhok,ukx,uky,bkx,bky,EU,EB,Erho,Eint,divu,divb)
 
 open(40, file = 'out_EU', position='append',form='formatted')
 open(41, file = 'out_EB', position='append',form='formatted')
 open(42, file = 'out_Erho', position='append',form='formatted')
 open(43, file = 'out_divu', position='append',form='formatted')
 open(44, file = 'out_divb', position='append',form='formatted')
-open(45, file = 'out_Erho2', position='append',form='formatted')
+open(45, file = 'out_Eint', position='append',form='formatted')
 write(40,*) EU
 write(41,*) EB
 write(42,*) Erho
 write(43,*) divu
 write(44,*) divb
-write(45,*) Erho2
+write(45,*) Eint
 close(40)
 close(41)
 close(42)
@@ -65,10 +65,10 @@ RETURN
 END SUBROUTINE energy
 
 !*****************************************************************
-SUBROUTINE compute_energy(rhok,ukx,uky,bkx,bky,EU,EB,Erho,Erho2,divu,divb)
+SUBROUTINE compute_energy(rhok,ukx,uky,bkx,bky,EU,EB,Erho,Eint,divu,divb)
 !***********compute energies
 double complex, intent(in) :: rhok(Nh,N), ukx(Nh,N), uky(Nh,N), bkx(Nh,N), bky(Nh,N)
-double precision, intent(out) :: EU, EB, Erho, Erho2, divu, divb
+double precision, intent(out) :: EU, EB, Eint, Erho, divu, divb
 double precision norm, norm2
 integer i, j
 
@@ -80,21 +80,20 @@ norm2 = norm*norm
 EU = 0.
 EB = 0.
 Erho = 0.
-Erho2 = 0.
 divu = 0.
 divb = 0.
 
 ! TODO: Erho is not properly computed
 !$omp parallel do private(i,j) reduction(+:EU,EB)
 do i = 1, N
-    EU = EU + (abs(ukx(1,i))**2 + abs(uky(1,i))**2)
-    EB = EB + (abs(bkx(1,i))**2 + abs(bky(1,i))**2)
+    EU = EU + 0.5*(abs(ukx(1,i))**2 + abs(uky(1,i))**2)
+    EB = EB + 0.5*(abs(bkx(1,i))**2 + abs(bky(1,i))**2)
     do j = 2, Nh-1
-        EU = EU + 2*(abs(ukx(j,i))**2 + abs(uky(j,i))**2)
-        EB = EB + 2*(abs(bkx(j,i))**2 + abs(bky(j,i))**2)
+        EU = EU + (abs(ukx(j,i))**2 + abs(uky(j,i))**2)
+        EB = EB + (abs(bkx(j,i))**2 + abs(bky(j,i))**2)
     end do
-    EU = EU + (abs(ukx(Nh,i))**2 + abs(uky(Nh,i))**2)
-    EB = EB + (abs(bkx(Nh,i))**2 + abs(bky(Nh,i))**2)
+    EU = EU + 0.5*(abs(ukx(Nh,i))**2 + abs(uky(Nh,i))**2)
+    EB = EB + 0.5*(abs(bkx(Nh,i))**2 + abs(bky(Nh,i))**2)
 end do
 
 EU = EU*norm2
@@ -107,16 +106,16 @@ call FFT_SP(tmpk1,tmp1)
 call FFT_SP(tmpk2,tmp2)
 call FFT_SP(tmpk3,tmp3)
 
-!$omp parallel do private(i,j) reduction(+:Erho,Erho2)
+!$omp parallel do private(i,j) reduction(+:Erho,Eint)
 do i = 1, N
     do j = 1, N
-        Erho = Erho + (1.d0+abs(tmp1(j,i)))*(abs(tmp2(j,i))**2 + abs(tmp3(j,i))**2)
-        Erho2 = Erho2 + abs(tmp1(j,i))
+        Erho = Erho + 0.5*(1.d0+tmp1(j,i))*(tmp2(j,i)**2 + tmp3(j,i)**2)
+        Eint = Eint + cspeed**2/(gamma*(gamma-1.d0))*((tmp1(j,i)+1.d0)**gamma - 1.d0) ! Extract constant value
     end do
 end do
 
 Erho = Erho*norm
-Erho2 = Erho2*norm
+Eint = Eint*norm
 
 call divergence(ukx,uky,tmpk1)
 call divergence(bkx,bky,tmpk2)

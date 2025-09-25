@@ -16,7 +16,7 @@ filenames_y = ['STS_Euxx_y', 'STS_Euyy_y', 'STS_Ebxx_y', 'STS_Ebyy_y']
 filenames_u = ['STS_uxkx', 'STS_uxky', 'STS_uykx', 'STS_uyky']
 filenames_b = ['STS_bxkx', 'STS_bxky', 'STS_bykx', 'STS_byky']
 filenames_r = ['STS_rhokx', 'STS_rhoky']
-filenames = filenames_u
+filenames = filenames_b
 
 def spatiotemporal(filename, ti, tf):
     print(filename)
@@ -85,6 +85,10 @@ ax[0].plot(x, 2*x, 'r--', label='2k')
 ax[1].plot(x, 2*x, 'r--')
 ax[2].plot(x, 2*x, 'r--')
 ax[3].plot(x, 2*x, 'r--')
+# ax[0].plot(x, np.sqrt(2)*x, 'C1--', label=r'$\sqrt{2}k$')
+# ax[1].plot(x, np.sqrt(2)*x, 'C1--')
+# ax[2].plot(x, np.sqrt(2)*x, 'C1--')
+# ax[3].plot(x, np.sqrt(2)*x, 'C1--')
 
 ax[0].legend()
 

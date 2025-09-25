@@ -17,10 +17,8 @@ SUBROUTINE Initk
 double precision ks
 integer i, j
 
-allocate(kill(Nh,N))
-allocate(kx(N))
-allocate(ky(Nh))
-allocate(kd(Nh,N))
+allocate(kill(Nh,N), kd(Nh,N))
+allocate(kx(N), ky(Nh))
 
 ky=(/(dfloat(i-1)*dk,i=1,Nh,1)/)
 kx(1:N/2)=(/(dfloat(i-1)*dk,i=1,N/2,1)/)
@@ -200,10 +198,6 @@ character (len=11) :: sts_bykx='STS_bykx'
 character (len=11) :: sts_byky='STS_byky'
 character (len=12) :: sts_rhokx='STS_rhokx'
 character (len=12) :: sts_rhoky='STS_rhoky'
-
-! TODO: compute local energy in the good way (counting each value once, and unfolding the size to N,N)
-
-
 
 OPEN(uSTS,file=sts_time,position='append',form='formatted')
 write(uSTS,*) time

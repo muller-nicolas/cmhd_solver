@@ -112,6 +112,12 @@ call FFT_SP(tmpk3,tmp3)
 tmp3 = -tmp2*tmp3/(1.d0+tmp1+eps)
 ! tmp3 = -tmp2*tmp3 ! Taylor
 
+!Pressure term
+tmp1 = 1.d0 + tmp1 ! 1 + rho = rho_tot ; rho_0 = 1
+call derivex(rhok,tmpk2)
+call FFT_SP(tmpk2,tmp2)
+tmp3 = tmp3 - cspeed**2 * tmp2*tmp1**(gamma-1.d0) / (tmp1+eps)
+
 tmpk1 = ukx
 call derivex(ukx,tmpk2)
 call FFT_SP(tmpk1,tmp1)
@@ -126,13 +132,6 @@ call FFT_SP(tmpk2,tmp2)
 ! -uy*uxdy
 tmp3 = tmp3 - tmp1*tmp2 
 
-!Pressure term
-tmpk1 = rhok
-call derivex(rhok,tmpk2)
-call FFT_SP(tmpk1,tmp1)
-call FFT_SP(tmpk2,tmp2)
-tmp3 = tmp3 - tmp2 / (1.d0+tmp1+eps)
-
 call FFT_PS(tmp3,tmpk3)
 nonlinukx = tmpk3
 
@@ -144,7 +143,6 @@ double complex :: nonlinuky(Nh,N)
 double precision :: eps = 1.d-10
 ! uyt = - ux*uydx - uy*uydy + (bx+1)*(curl(b))/(1+rho)
 
-! nonlinuky = 0.d0 + imag*0.d0
 ! Add linear terms
 call curl(bkx,bky,tmpk2)
 nonlinuky = tmpk2
@@ -168,6 +166,12 @@ tmp3 = tmp3 + 0.5*tmp1**2*tmp2
 ! NOTE: The correct expression is the one not working, wihtout adding the linear term in nonlinuky, but that doesn't work.
 ! So I add the linear term and do a Taylor expansion only of that term. TODO 
 
+!Pressure term
+tmp1 = 1.d0 + tmp1 ! 1 + rho = rho_tot ; rho_0 = 1
+call derivey(rhok,tmpk2)
+call FFT_SP(tmpk2,tmp2)
+tmp3 = tmp3 - cspeed**2 * tmp2*tmp1**(gamma-1.d0) / (tmp1+eps)
+
 tmpk1 = ukx
 call derivex(uky,tmpk2)
 call FFT_SP(tmpk1,tmp1)
@@ -181,13 +185,6 @@ call FFT_SP(tmpk1,tmp1)
 call FFT_SP(tmpk2,tmp2)
 ! -uy*uydy
 tmp3 = tmp3 - tmp1*tmp2 
-
-!Pressure term
-tmpk1 = rhok
-call derivey(rhok,tmpk2)
-call FFT_SP(tmpk1,tmp1)
-call FFT_SP(tmpk2,tmp2)
-tmp3 = tmp3 - tmp2 / (1.d0+tmp1+eps)
 
 call FFT_PS(tmp3,tmpk3)
 
@@ -204,35 +201,23 @@ double complex :: nonlinbkx(Nh,N)
 call derivey(uky,tmpk2)
 nonlinbkx = -tmpk2
 
-tmpk1 = bkx
-call FFT_SP(tmpk1,tmp1)
-call FFT_SP(tmpk2,tmp2)
-! -bx*uydy
-tmp3 = -tmp1*tmp2 
-
-tmpk1 = bky
-call derivey(ukx,tmpk2)
-call FFT_SP(tmpk1,tmp1)
-call FFT_SP(tmpk2,tmp2)
-! by*uxdy
-tmp3 = tmp3 + tmp1*tmp2 
-
 tmpk1 = ukx
-call derivex(bkx,tmpk2)
+tmpk2 = bky
 call FFT_SP(tmpk1,tmp1)
 call FFT_SP(tmpk2,tmp2)
-! -ux*bxdx
-tmp3 = tmp3 - tmp1*tmp2 
+! ux*by
+tmp3 = tmp1*tmp2
 
 tmpk1 = uky
-call derivey(bkx,tmpk2)
+tmpk2 = bkx
 call FFT_SP(tmpk1,tmp1)
 call FFT_SP(tmpk2,tmp2)
-! -uy*bxdy
+! -uy*bx
 tmp3 = tmp3 - tmp1*tmp2 
 
 call FFT_PS(tmp3,tmpk3)
-nonlinbkx = nonlinbkx + tmpk3
+call derivey(tmpk3,tmpk2)
+nonlinbkx = nonlinbkx + tmpk2
 
 END SUBROUTINE RHS4
 
@@ -245,35 +230,23 @@ double complex :: nonlinbky(Nh,N)
 call derivex(uky,tmpk2)
 nonlinbky = tmpk2
 
-tmpk1 = bkx
+tmpk1 = uky
+tmpk2 = bkx
 call FFT_SP(tmpk1,tmp1)
 call FFT_SP(tmpk2,tmp2)
-! bx*uydx
-tmp3 = tmp1*tmp2 
+! bx*uy
+tmp3 = tmp1*tmp2
 
 tmpk1 = ukx
-call derivex(bky,tmpk2)
+tmpk2 = bky
 call FFT_SP(tmpk1,tmp1)
 call FFT_SP(tmpk2,tmp2)
-! -ux*bydx
-tmp3 = tmp3 - tmp1*tmp2
-
-tmpk1 = uky
-call derivey(bky,tmpk2)
-call FFT_SP(tmpk1,tmp1)
-call FFT_SP(tmpk2,tmp2)
-! -uy*bydy
+! -by*ux
 tmp3 = tmp3 - tmp1*tmp2 
 
-tmpk1 = bky
-call derivex(ukx,tmpk2)
-call FFT_SP(tmpk1,tmp1)
-call FFT_SP(tmpk2,tmp2)
-! -by*uxdx
-tmp3 = tmp3 - tmp1*tmp2
-
 call FFT_PS(tmp3,tmpk3)
-nonlinbky = nonlinbky + tmpk3
+call derivex(tmpk3,tmpk2)
+nonlinbky = nonlinbky + tmpk2
 
 END SUBROUTINE RHS5
 

@@ -85,8 +85,8 @@ if (nrestart .eq. 0) then
     close(31)
 
     ! Initilize velocity field
-    ! call RandomInit(ukx1,uky1)
-    call GaussianInit(ukx1,uky1)
+    call RandomInit(ukx1,uky1)
+    ! call GaussianInit(ukx1,uky1)
 
 !****************** In case of restart the code starts below *************
 elseif (nrestart .ne. 0) then
