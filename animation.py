@@ -10,6 +10,10 @@ iend = 109
 iskip = 1
 P = np.loadtxt('out_parameter')
 N = int(P[6]) # N
+L = 2*np.pi
+dx = L/N
+k = np.fft.fftfreq(N)*N
+ky,kx = np.meshgrid(k,k)
 
 cmap = plt.cm.coolwarm
 
@@ -19,9 +23,42 @@ if len(sys.argv)>2:
     iend = int(sys.argv[2])
 
 def load_fields(path, name, time, N):
-    filename = path + 'out_' + name + f'-2D-{time}'
-    field = np.fromfile(filename, dtype=np.float64).reshape((N,N))
+    if name=="wz":
+        field1 = load_fields(path, 'ux', time, N)
+        field2 = load_fields(path, 'uy', time, N)
+        # field = np.gradient(field2,axis=1)/dx - np.gradient(field1,axis=0)/dx
+        field = derivex(field2) - derivey(field1)
+    elif name=="jz":
+        field1 = load_fields(path, 'bx', time, N)
+        field2 = load_fields(path, 'by', time, N)
+        # field = np.gradient(field2,axis=1)/dx - np.gradient(field1,axis=0)/dx
+        field = derivex(field2) - derivey(field1)
+    elif name=="divu":
+        field1 = load_fields(path, 'ux', time, N)
+        field2 = load_fields(path, 'uy', time, N)
+        # field = np.gradient(field2,axis=0)/dx + np.gradient(field1,axis=1)/dx
+        field = derivex(field1) + derivey(field2)
+    elif name=="divb":
+        field1 = load_fields(path, 'bx', time, N)
+        field2 = load_fields(path, 'by', time, N)
+        # field = np.gradient(field2,axis=0)/dx + np.gradient(field1,axis=1)/dx
+        field = derivex(field1) + derivey(field2)
+    else:
+        filename = path + 'out_' + name + f'-2D-{time}'
+        field = np.fromfile(filename, dtype=np.float64).reshape((N,N))
     return field
+
+def derivex(field):
+    fk = np.fft.fft(field, axis=0)
+    dfk = 1j*kx*fk
+    out = np.real(np.fft.ifft(dfk, axis=0))
+    return out
+
+def derivey(field):
+    fk = np.fft.fft(field, axis=1)
+    dfk = 1j*ky*fk
+    out = np.real(np.fft.ifft(dfk, axis=1))
+    return out
 
 def run_animation():
     anim_running = True

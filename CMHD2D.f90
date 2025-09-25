@@ -26,6 +26,7 @@ implicit none
 double precision t1, t2
 double precision ta, time, timests, phase
 
+double precision, dimension(:,:), allocatable :: ux1, uy1, bx1, by1, rho1
 double complex, dimension(:,:), allocatable :: ukx1, uky1, bkx1, bky1, rhok1
 double complex, dimension(:,:), allocatable :: nonlinrhok0, nonlinukx0, nonlinuky0, nonlinbkx0, nonlinbky0
 double complex, dimension(:,:), allocatable :: nonlinrhok1, nonlinukx1, nonlinuky1, nonlinbkx1, nonlinbky1
@@ -38,9 +39,11 @@ double complex, dimension(:,:), allocatable :: fukx, fuky, fbkx, fbky
 ! double complex, dimension(:,:), allocatable :: nonlinrhok2, nonlinukx2, nonlinuky2, nonlinbkx2, nonlinbky2 ! RK4
 ! double complex, dimension(:,:), allocatable :: nonlinrhok3, nonlinukx3, nonlinuky3, nonlinbkx3, nonlinbky3 ! RK4
 
+character(len=30) :: fname
+character(len=12) :: numstr
 integer i, j, it, corr
-character (len=11) :: animR='restart-'
 
+allocate(ux1(N,N), uy1(N,N), bx1(N,N), by1(N,N), rho1(N,N))
 allocate(ukx1(Nh,N), uky1(Nh,N), bkx1(Nh,N), bky1(Nh,N), rhok1(Nh,N))
 allocate(nonlinrhok0(Nh,N), nonlinukx0(Nh,N), nonlinuky0(Nh,N), nonlinbkx0(Nh,N), nonlinbky0(Nh,N))
 allocate(nonlinrhok1(Nh,N), nonlinukx1(Nh,N), nonlinuky1(Nh,N), nonlinbkx1(Nh,N), nonlinbky1(Nh,N))
@@ -72,9 +75,6 @@ call Initk
 !***************** In case of no restart the code starts down here
 if (nrestart .eq. 0) then
 
-    ! open(30, file='out_parameter', status='new', form='formatted')
-    ! write(30,*) deltaT, ndeltaT, inrj, kinj, ispec, ifields, N, dk
-    ! close(30)
     open(30, file='out_parameter', status='new', form='formatted')
     write(30,'(E15.8,1X,I10,1X,I10,1X,E15.8,1X,I10,1X,I10,1X,I10,1X,E15.8)') &
        deltaT, ndeltaT, inrj, kinj, ispec, ifields, N, dk
@@ -90,9 +90,37 @@ if (nrestart .eq. 0) then
 
 !****************** In case of restart the code starts below *************
 elseif (nrestart .ne. 0) then
-    open(66, file = 'restart', status = 'old',form='unformatted')
-    read(66) rhok1(:,:),ukx1(:,:),uky1(:,:),bkx1(:,:),bky1(:,:)
+
+    write(numstr, '(I5)') nrestart
+    fname = 'out_rho-2D-' // trim(adjustl(numstr))
+    open(66, file = fname, status = 'old',form='unformatted', access='stream')
+    read(66) rho1(:,:)
     close(66)
+    fname = 'out_ux-2D-' // trim(adjustl(numstr))
+    open(66, file = fname, status = 'old',form='unformatted', access='stream')
+    read(66) ux1(:,:)
+    close(66)
+    fname = 'out_uy-2D-' // trim(adjustl(numstr))
+    open(66, file = fname, status = 'old',form='unformatted', access='stream')
+    read(66) uy1(:,:)
+    close(66)
+    fname = 'out_bx-2D-' // trim(adjustl(numstr))
+    open(66, file = fname, status = 'old',form='unformatted', access='stream')
+    read(66) bx1(:,:)
+    close(66)
+    fname = 'out_by-2D-' // trim(adjustl(numstr))
+    open(66, file = fname, status = 'old',form='unformatted', access='stream')
+    read(66) by1(:,:)
+    close(66)
+
+    call FFT_PS(rho1,rhok1)
+    call FFT_PS(ux1,ukx1)
+    call FFT_PS(uy1,uky1)
+    call FFT_PS(bx1,bkx1)
+    call FFT_PS(by1,bky1)
+
+    istore_sp = nrestart+1
+    istore_fields = nrestart+1
 end if
 
 ! Initialize forcing in ux0 and uy0
@@ -278,10 +306,10 @@ end do ! end of the temporal loop
 !****************End of the time loop
 
 ! Save fields in spectral space for restart
-write(animR(9:11),'(i3)') istore_fields
-open(30, file = animR, status = 'new',form='unformatted')
-write(30) rhok1(:,:),ukx1(:,:),uky1(:,:),bkx1(:,:),bky1(:,:)
-close(30)
+! write(animR(9:11),'(i3)') istore_fields
+! open(30, file = animR, status = 'new',form='unformatted')
+! write(30) rhok1(:,:),ukx1(:,:),uky1(:,:),bkx1(:,:),bky1(:,:)
+! close(30)
 
 t2 = omp_get_wtime()
 write(*,*) "cpu time", t2-t1

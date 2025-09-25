@@ -199,10 +199,10 @@ double complex, intent(in) :: rhok(Nh,N), ukx(Nh,N), uky(Nh,N), bkx(Nh,N), bky(N
 integer, intent(inout) :: istore_fields
 
 character (len=14) :: animO='out_rho-2D-'
-character (len=13) :: animW='out_wz-2D-'
-character (len=13) :: animJ='out_jz-2D-'
-character (len=15) :: animdivb='out_divb-2D-'
-character (len=15) :: animdivu='out_divu-2D-'
+character (len=13) :: animUx='out_ux-2D-'
+character (len=13) :: animUy='out_uy-2D-'
+character (len=13) :: animBx='out_bx-2D-'
+character (len=13) :: animBy='out_by-2D-'
 
 allocate( tmpk1(Nh,N), tmp1(N,N))
 
@@ -213,33 +213,34 @@ open(30, file = animO, status='replace', form='unformatted', access='stream')
 write(30) tmp1(:,:)
 close(30)
 !
-write(animW(11:13),'(i3)') istore_fields
-call curl(ukx,uky,tmpk1)
+tmpk1 = ukx
+write(animUx(11:13),'(i3)') istore_fields
 call FFT_SP(tmpk1,tmp1)
-open(30, file = animW, status='replace', form='unformatted', access='stream')
+open(30, file = animUx, status='replace', form='unformatted', access='stream')
 write(30) tmp1(:,:)
 close(30)
 !
-call curl(bkx,bky,tmpk1)
+tmpk1 = uky
+write(animUy(11:13),'(i3)') istore_fields
 call FFT_SP(tmpk1,tmp1)
-write(animJ(11:13),'(i3)') istore_fields
-open(30, file = animJ, status='replace', form='unformatted', access='stream')
+open(30, file = animUy, status='replace', form='unformatted', access='stream')
 write(30) tmp1(:,:)
 close(30)
 !
-write(animdivb(13:15),'(i3)') istore_fields
-call divergence(bkx,bky,tmpk1)
+tmpk1 = bkx
+write(animBx(11:13),'(i3)') istore_fields
 call FFT_SP(tmpk1,tmp1)
-open(30, file = animdivb, status='replace', form='unformatted', access='stream')
+open(30, file = animBx, status='replace', form='unformatted', access='stream')
 write(30) tmp1(:,:)
 close(30)
 !
-write(animdivu(13:15),'(i3)') istore_fields
-call divergence(ukx,uky,tmpk1)
+tmpk1 = bky
+write(animBy(11:13),'(i3)') istore_fields
 call FFT_SP(tmpk1,tmp1)
-open(30, file = animdivu, status='replace', form='unformatted', access='stream')
+open(30, file = animBy, status='replace', form='unformatted', access='stream')
 write(30) tmp1(:,:)
 close(30)
+!
 istore_fields = istore_fields + 1
 
 deallocate (tmpk1, tmp1)
