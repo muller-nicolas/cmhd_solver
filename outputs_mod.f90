@@ -160,10 +160,13 @@ END SUBROUTINE energyF
 
 SUBROUTINE save_spectra(rhok,ukx,uky,bkx,bky,istore_sp)
 double complex, intent(in) :: rhok(Nh,N), ukx(Nh,N), uky(Nh,N), bkx(Nh,N), bky(Nh,N)
+double complex :: Ak1(Nh,N), Ak2(Nh,N)
 integer, intent(inout) :: istore_sp
 character (len=21) :: animU1D='out_spectrumEU-1D-'
 character (len=21) :: animB1D='out_spectrumEB-1D-'
 character (len=22) :: animrho1D='out_spectrumrho-1D-'
+character (len=22) :: animAk1='out_spectrumAk1-1D-'
+character (len=22) :: animAk2='out_spectrumAk2-1D-'
 
 allocate (spec1d(Nh))
 
@@ -185,6 +188,21 @@ close(31)
 call spectrumrho1D(rhok,spec1d)
 write(animrho1D(20:22),'(i3)') istore_sp
 open(31, file=animrho1D, status='new',form='formatted')
+write(31,'(1000(1X,E25.18))') spec1d(:)
+close(31)
+
+! Canonical variables
+call canonical_variable(ukx,uky,bkx,bky,Ak1,Ak2)
+! Ak+
+call spectrumrho1D(Ak1,spec1d)
+write(animAk1(20:22),'(i3)') istore_sp
+open(31, file=animAk1, status='new',form='formatted')
+write(31,'(1000(1X,E25.18))') spec1d(:)
+close(31)
+! Ak-
+call spectrumrho1D(Ak2,spec1d)
+write(animAk2(20:22),'(i3)') istore_sp
+open(31, file=animAk2, status='new',form='formatted')
 write(31,'(1000(1X,E25.18))') spec1d(:)
 close(31)
 

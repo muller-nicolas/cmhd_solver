@@ -24,25 +24,21 @@ if len(sys.argv)>2:
 
 def load_fields(path, name, time, N):
     if name=="wz":
-        field1 = load_fields(path, 'ux', time, N)
-        field2 = load_fields(path, 'uy', time, N)
-        # field = np.gradient(field2,axis=1)/dx - np.gradient(field1,axis=0)/dx
-        field = derivex(field2) - derivey(field1)
+        fieldx = load_fields(path, 'ux', time, N)
+        fieldy = load_fields(path, 'uy', time, N)
+        field = derivex(fieldy) - derivey(fieldx)
     elif name=="jz":
-        field1 = load_fields(path, 'bx', time, N)
-        field2 = load_fields(path, 'by', time, N)
-        # field = np.gradient(field2,axis=1)/dx - np.gradient(field1,axis=0)/dx
-        field = derivex(field2) - derivey(field1)
+        fieldx = load_fields(path, 'bx', time, N)
+        fieldy = load_fields(path, 'by', time, N)
+        field = derivex(fieldy) - derivey(fieldx)
     elif name=="divu":
-        field1 = load_fields(path, 'ux', time, N)
-        field2 = load_fields(path, 'uy', time, N)
-        # field = np.gradient(field2,axis=0)/dx + np.gradient(field1,axis=1)/dx
-        field = derivex(field1) + derivey(field2)
+        fieldx = load_fields(path, 'ux', time, N)
+        fieldy = load_fields(path, 'uy', time, N)
+        field = derivex(fieldx) + derivey(fieldy)
     elif name=="divb":
-        field1 = load_fields(path, 'bx', time, N)
-        field2 = load_fields(path, 'by', time, N)
-        # field = np.gradient(field2,axis=0)/dx + np.gradient(field1,axis=1)/dx
-        field = derivex(field1) + derivey(field2)
+        fieldx = load_fields(path, 'bx', time, N)
+        fieldy = load_fields(path, 'by', time, N)
+        field = derivex(fieldx) + derivey(fieldy)
     else:
         filename = path + 'out_' + name + f'-2D-{time}'
         field = np.fromfile(filename, dtype=np.float64).reshape((N,N))

@@ -173,9 +173,32 @@ spec1d = spec1d/real(N,kind=8)**4
 RETURN
 END SUBROUTINE spectrumrho1D
 
+SUBROUTINE canonical_variable(ukx,uky,bkx,bky,Ak1,Ak2)
+double complex, intent(in) :: ukx(Nh,N), uky(Nh,N), bkx(Nh,N), bky(Nh,N)
+double complex, intent(out) :: Ak1(Nh,N), Ak2(Nh,N)
+double complex :: tmpk1, tmpk2
+integer :: i,j
+
+do i=1,N
+    do j=1,Nh
+        ! Ak1(j,i) = ky(j)/kx(i)*ukx(j,i) - uky(j,i) - sqrt(kd(j,i))/ky(j)*bkx(j,i)
+        ! Ak2(j,i) = ky(j)/kx(i)*ukx(j,i) - uky(j,i) + sqrt(kd(j,i))/ky(j)*bkx(j,i)
+        tmpk1 = ky(j)/kx(i)*ukx(j,i) - uky(j,i)
+        tmpk2 = (kx(i)*bky(j,i) - ky(j)*bkx(j,i)) / sqrt(kd(j,i))
+        Ak1(j,i) = tmpk1 + tmpk2
+        Ak2(j,i) = tmpk1 - tmpk2
+    end do
+end do
+Ak1(:,1) = 0.
+Ak2(1,:) = 0.
+
+RETURN
+END SUBROUTINE canonical_variable
+
 !*****************************************************************
 SUBROUTINE WriteSpatioTemporalSpectrum(rhok, ukx, uky, bkx, bky, time)
 double complex :: rhok(Nh,N), ukx(Nh,N), uky(Nh,N), bkx(Nh,N), bky(Nh,N)
+double complex :: Ak1(Nh,N), Ak2(Nh,N)
 double precision :: time, tmpk1(Nh,N)
 integer :: uSTS=80
 
@@ -198,6 +221,10 @@ character (len=11) :: sts_bykx='STS_bykx'
 character (len=11) :: sts_byky='STS_byky'
 character (len=12) :: sts_rhokx='STS_rhokx'
 character (len=12) :: sts_rhoky='STS_rhoky'
+character (len=12) :: sts_Ak1kx='STS_Ak1kx'
+character (len=12) :: sts_Ak1ky='STS_Ak1ky'
+character (len=12) :: sts_Ak2kx='STS_Ak2kx'
+character (len=12) :: sts_Ak2ky='STS_Ak2ky'
 
 OPEN(uSTS,file=sts_time,position='append',form='formatted')
 write(uSTS,*) time
@@ -265,6 +292,23 @@ close(uSTS)
 OPEN (uSTS, file=sts_rhoky, access='stream', position='append',form='unformatted')
 write(uSTS) rhok(:,1) !kx=0
 close(uSTS)
+
+! Canonical variables
+call canonical_variable(ukx,uky,bkx,bky,Ak1,Ak2)
+! Ak+
+OPEN (uSTS, file=sts_Ak1kx, access='stream', position='append',form='unformatted')
+write(uSTS) Ak1(2,:) !ky=0
+close(uSTS)
+OPEN (uSTS, file=sts_Ak1ky, access='stream', position='append',form='unformatted')
+write(uSTS) Ak1(:,2) !kx=0
+close(uSTS)
+! Ak-
+OPEN (uSTS, file=sts_Ak2kx, access='stream', position='append',form='unformatted')
+write(uSTS) Ak2(2,:) !ky=0
+close(uSTS)
+OPEN (uSTS, file=sts_Ak2ky, access='stream', position='append',form='unformatted')
+write(uSTS) Ak2(:,2) !kx=0
+close(uSTS) 
 
 END SUBROUTINE WriteSpatioTemporalSpectrum
 
