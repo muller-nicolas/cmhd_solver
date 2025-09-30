@@ -158,22 +158,37 @@ EU = EU/real(N*N)
 RETURN
 END SUBROUTINE energyF
 
+!*****************************************************************
 SUBROUTINE save_spectra(rhok,ukx,uky,bkx,bky,istore_sp)
-double complex, intent(in) :: rhok(Nh,N), ukx(Nh,N), uky(Nh,N), bkx(Nh,N), bky(Nh,N)
-double complex :: Ak1(Nh,N), Ak2(Nh,N)
+double complex, dimension(Nh,N), intent(in) :: rhok, ukx, uky, bkx, bky
+double complex, dimension(:,:), allocatable :: Ak1, Ak2
+double precision, allocatable :: spec2(:)
 integer, intent(inout) :: istore_sp
 character (len=21) :: animU1D='out_spectrumEU-1D-'
 character (len=21) :: animB1D='out_spectrumEB-1D-'
+character (len=21) :: animEk='out_spectrumEk-1D-'
 character (len=22) :: animrho1D='out_spectrumrho-1D-'
 character (len=22) :: animAk1='out_spectrumAk1-1D-'
 character (len=22) :: animAk2='out_spectrumAk2-1D-'
+character (len=22) :: animEAk='out_spectrumEAk-1D-'
+character (len=22) :: animHAk='out_spectrumHAk-1D-'
 
-allocate (spec1d(Nh))
+allocate (spec1d(Nh), spec2(Nh))
+allocate(Ak1(Nh,N), Ak2(Nh,N))
 
-! Save kinetic energy spectrum
+! Save U^2 spectrum
 write(animU1D(19:21),'(i3)') istore_sp
 call spectrum1D(ukx,uky,spec1d)
 open(31, file=animU1D, status = 'new',form='formatted')
+write(31,'(1000(1X,E25.18))') spec1d(:)
+close(31)
+
+! Save kinetic energy spectrum
+write(animEk(19:21),'(i3)') istore_sp
+Ak1 = sqrt(rhok)*ukx
+Ak2 = sqrt(rhok)*uky
+call spectrum1D(Ak1,Ak2,spec1d)
+open(31, file=animEk, status='new',form='formatted')
 write(31,'(1000(1X,E25.18))') spec1d(:)
 close(31)
 
@@ -192,7 +207,7 @@ write(31,'(1000(1X,E25.18))') spec1d(:)
 close(31)
 
 ! Canonical variables
-call canonical_variable(ukx,uky,bkx,bky,Ak1,Ak2)
+call canonical_variables(ukx,uky,bkx,bky,Ak1,Ak2)
 ! Ak+
 call spectrumrho1D(Ak1,spec1d)
 write(animAk1(20:22),'(i3)') istore_sp
@@ -206,9 +221,22 @@ open(31, file=animAk2, status='new',form='formatted')
 write(31,'(1000(1X,E25.18))') spec1d(:)
 close(31)
 
+call spectrumAk(Ak1,Ak2,spec1d,spec2)
+! Ek
+write(animEAk(20:22),'(i3)') istore_sp
+open(31, file=animEAk, status='new',form='formatted')
+write(31,'(1000(1X,E25.18))') spec1d(:)
+close(31)
+! Hk
+write(animHAk(20:22),'(i3)') istore_sp
+open(31, file=animHAk, status='new',form='formatted')
+write(31,'(1000(1X,E25.18))') spec2(:)
+close(31)
+
 istore_sp = istore_sp + 1
 
-deallocate (spec1d)
+deallocate (spec1d, spec2)
+deallocate (Ak1,Ak2)
 
 END SUBROUTINE save_spectra
 

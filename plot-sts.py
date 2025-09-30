@@ -3,7 +3,7 @@ import numpy as np
 
 ti = 100 # Bounds of data to process
 tf = -1 # Bounds of data to process
-vmin = -25
+vmin = -30
 vmax = -15
 P = np.loadtxt('out_parameter')
 N = int(P[6]) # N
@@ -77,7 +77,13 @@ ax[0].set_xlim(left=0, right=kmax+0)
 # ax.set_ylim(bottom=-2, top=N//2)
 # fig.colorbar(plot)
 
+beta = 1
+b0 = 1
+
 x = np.linspace(0, kmax, kmax+1)
+omega_perp = np.sqrt(b0**2*x**2 / 2 * (1+beta + np.sqrt( (1+beta)**2)))
+omega_para = np.sqrt(b0**2*x**2 / 2 * (1+beta + np.sqrt( (1+beta)**2 - 4*b0**2*beta)))
+
 ax[0].plot(x, x, 'k--', label='k')
 ax[1].plot(x, x, 'k--')
 ax[2].plot(x, x, 'k--')
@@ -86,6 +92,11 @@ ax[0].plot(x, 2*x, 'r--', label='2k')
 ax[1].plot(x, 2*x, 'r--')
 ax[2].plot(x, 2*x, 'r--')
 ax[3].plot(x, 2*x, 'r--')
+
+ax[0].plot(x, omega_para, 'C1--', label=r'$\omega_{\parallel}$')
+ax[1].plot(x, omega_perp, 'C1--', label=r'$\omega_{\perp}$')
+ax[2].plot(x, omega_perp, 'C1--', label=r'$\omega_{\perp}$')
+ax[3].plot(x, omega_para, 'C1--', label=r'$\omega_{\parallel}$')
 # ax[0].plot(x, np.sqrt(2)*x, 'C1--', label=r'$\sqrt{2}k$')
 # ax[1].plot(x, np.sqrt(2)*x, 'C1--')
 # ax[2].plot(x, np.sqrt(2)*x, 'C1--')

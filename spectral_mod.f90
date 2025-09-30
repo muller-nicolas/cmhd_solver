@@ -12,6 +12,7 @@ double precision :: kmax
 save
 contains
 
+!*****************************************************************
 SUBROUTINE Initk
 ! Initialization of the wavenumbers
 double precision ks
@@ -82,9 +83,8 @@ double complex, intent(in)  :: Akx(Nh,N), Aky(Nh,N)
 double complex, intent(out) :: divk(Nh,N)
 double complex  :: tmpk(Nh,N)
 
-divk = 0.
 call derivex(Akx,tmpk)
-divk = divk + tmpk
+divk = tmpk
 call derivey(Aky,tmpk)
 divk = divk + tmpk
 
@@ -97,15 +97,15 @@ double complex, intent(in)  :: Akx(Nh,N), Aky(Nh,N)
 double complex, intent(out) :: curlk(Nh,N)
 double complex  :: tmpk(Nh,N)
 
-curlk = 0.
 call derivex(Aky,tmpk)
-curlk = curlk + tmpk
+curlk = tmpk
 call derivey(Akx,tmpk)
 curlk = curlk - tmpk
 
 RETURN
 END SUBROUTINE curl
 
+!*****************************************************************
 SUBROUTINE cross_product(Ax,Ay,Bx,By,C)
 double precision, dimension(N,N), intent(in) :: Ax, Ay, Bx, By
 double precision, dimension(N,N), intent(out) :: C
@@ -155,17 +155,17 @@ spec1d = 0.
 do i = 1, N
     k = int(sqrt(kd(1,i))/dk+0.5)+1
     if (k .le. Nh) then
-        spec1d(k) = spec1d(k) + (abs(rhok(1,i))**2)
+        spec1d(k) = spec1d(k) + abs(rhok(1,i))**2
     end if
     do j = 2, Nh-1
         k = int(sqrt(kd(j,i))/dk+0.5)+1
         if (k .le. Nh) then
-            spec1d(k) = spec1d(k) + 2*(abs(rhok(j,i))**2)
+            spec1d(k) = spec1d(k) + 2*abs(rhok(j,i))**2
         end if
     end do
     k = int(sqrt(kd(Nh,i))/dk+0.5)
     if (k .le. Nh) then
-        spec1d(k) = spec1d(k) + (abs(rhok(Nh,i))**2)
+        spec1d(k) = spec1d(k) + abs(rhok(Nh,i))**2
     end if
 end do
 spec1d = spec1d/real(N,kind=8)**4
@@ -173,10 +173,48 @@ spec1d = spec1d/real(N,kind=8)**4
 RETURN
 END SUBROUTINE spectrumrho1D
 
-SUBROUTINE canonical_variable(ukx,uky,bkx,bky,Ak1,Ak2)
+!*****************************************************************
+SUBROUTINE spectrumAk(Akx,Aky,specE,specH)
+! Computes the 1D spectrum of the 2D fields Akx and Aky. Works for velocity and magnetic fields.
+double complex, intent(in) :: Akx(Nh,N), Aky(Nh,N)
+double precision, intent(out) :: specE(Nh), specH(Nh)
+integer i, j, k 
+
+specE = 0.
+specH = 0.
+!$omp parallel do private(i,j,k) reduction(+:specE,specH)
+do i = 1, N
+    k = int(sqrt(kd(1,i))/dk+0.5)+1
+    if (k .le. Nh) then
+        specE(k) = specE(k) + 0.5*(abs(Akx(1,i))**2 + abs(Aky(1,i))**2)
+        specH(k) = specH(k) + 0.5*(abs(Akx(1,i))**2 - abs(Aky(1,i))**2) * kx(i)/sqrt(kd(1,i))
+    end if
+    do j = 2, Nh-1
+        k = int(sqrt(kd(j,i))/dk+0.5)+1
+        if (k .le. Nh) then
+            specE(k) = specE(k) + (abs(Akx(j,i))**2 + abs(Aky(j,i))**2)
+            specH(k) = specH(k) + (abs(Akx(j,i))**2 - abs(Aky(j,i))**2) * kx(i)/sqrt(kd(j,i))
+        end if
+    end do
+    k = int(sqrt(kd(Nh,i))/dk+0.5)+1
+    if (k .le. Nh) then
+        specE(k) = specE(k) + 0.5*(abs(Akx(Nh,i))**2 + abs(Aky(Nh,i))**2)
+        specH(k) = specH(k) + 0.5*(abs(Akx(Nh,i))**2 - abs(Aky(Nh,i))**2) * kx(i)/sqrt(kd(j,i))
+    end if
+end do
+specH(1) = 0.
+specE = specE/real(N,kind=8)**4
+specH = specH/real(N,kind=8)**4
+
+RETURN
+END SUBROUTINE spectrumAk
+
+!*****************************************************************
+SUBROUTINE canonical_variables(ukx,uky,bkx,bky,Ak1,Ak2)
 double complex, intent(in) :: ukx(Nh,N), uky(Nh,N), bkx(Nh,N), bky(Nh,N)
 double complex, intent(out) :: Ak1(Nh,N), Ak2(Nh,N)
 double complex :: tmpk1, tmpk2
+double precision :: eps = 1.d-15
 integer :: i,j
 
 do i=1,N
@@ -184,20 +222,41 @@ do i=1,N
         ! Ak1(j,i) = ky(j)/kx(i)*ukx(j,i) - uky(j,i) - sqrt(kd(j,i))/ky(j)*bkx(j,i)
         ! Ak2(j,i) = ky(j)/kx(i)*ukx(j,i) - uky(j,i) + sqrt(kd(j,i))/ky(j)*bkx(j,i)
         tmpk1 = ky(j)/kx(i)*ukx(j,i) - uky(j,i)
-        tmpk2 = (kx(i)*bky(j,i) - ky(j)*bkx(j,i)) / sqrt(kd(j,i))
+        tmpk2 = (kx(i)*bky(j,i) - ky(j)*bkx(j,i)) / (sqrt(kd(j,i))+eps)
+        ! tmpk1 = ky(j)/kx(i)*ukx(j,i) - uky(j,i)
+        ! tmpk2 = - bkx(j,i)*sqrt(kd(j,i)) / ky(j)
         Ak1(j,i) = tmpk1 + tmpk2
         Ak2(j,i) = tmpk1 - tmpk2
     end do
 end do
 Ak1(:,1) = 0.
-Ak2(1,:) = 0.
+Ak2(:,1) = 0.
+! Ak1(1,:) = 0.
+! Ak2(1,:) = 0.
 
 RETURN
-END SUBROUTINE canonical_variable
+END SUBROUTINE canonical_variables
+
+!*****************************************************************
+SUBROUTINE Ek2D_and_Hk2D(Ak1,Ak2,Ek,Hk)
+double complex, intent(in) :: Ak1(Nh,N), Ak2(Nh,N)
+double complex, intent(out) :: Ek(Nh,N), Hk(Nh,N)
+integer :: i,j
+
+!$omp parallel do private(i,j)
+do i=1,N
+    do j=1,Nh
+        Ek(j,i) = 0.25*(abs(Ak1(j,i))**2 + abs(Ak2(j,i))**2)
+        Hk(j,i) =-0.25*(abs(Ak1(j,i))**2 - abs(Ak2(j,i))**2) * kx(i)/sqrt(kd(j,i))
+    end do
+end do
+
+RETURN
+END SUBROUTINE Ek2D_and_Hk2D
 
 !*****************************************************************
 SUBROUTINE WriteSpatioTemporalSpectrum(rhok, ukx, uky, bkx, bky, time)
-double complex :: rhok(Nh,N), ukx(Nh,N), uky(Nh,N), bkx(Nh,N), bky(Nh,N)
+double complex, intent(in) :: rhok(Nh,N), ukx(Nh,N), uky(Nh,N), bkx(Nh,N), bky(Nh,N)
 double complex :: Ak1(Nh,N), Ak2(Nh,N)
 double precision :: time, tmpk1(Nh,N)
 integer :: uSTS=80
@@ -294,7 +353,7 @@ write(uSTS) rhok(:,1) !kx=0
 close(uSTS)
 
 ! Canonical variables
-call canonical_variable(ukx,uky,bkx,bky,Ak1,Ak2)
+call canonical_variables(ukx,uky,bkx,bky,Ak1,Ak2)
 ! Ak+
 OPEN (uSTS, file=sts_Ak1kx, access='stream', position='append',form='unformatted')
 write(uSTS) Ak1(2,:) !ky=0
