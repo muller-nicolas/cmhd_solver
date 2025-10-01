@@ -14,13 +14,13 @@ integer :: istore_sp = 100
 integer :: istore_fields = 100
 
 ! Physical parameters
-double precision, parameter :: nu0  = 1.d-5 ! viscosity
+double precision, parameter :: nu0  = 5.d-6 ! viscosity
 double precision, parameter :: alpha  = 0.d-2 ! damping (large-scale)
 double precision, parameter :: cspeed  = 0.5477   ! speed of sound
 double precision, parameter :: gamma  = 1.4   ! polytropic index
 double precision :: eta = nu0 ! magnetic viscosity
 integer, parameter :: ndeltaT = 10000
-integer, parameter :: inrj = 10
+integer, parameter :: inrj = 100
 integer, parameter :: ispec = 100    !*********must be a multiple of inrj
 integer, parameter :: ifields = 100  !*********must be a multiple of inrj
 

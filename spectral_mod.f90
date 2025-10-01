@@ -258,18 +258,18 @@ END SUBROUTINE Ek2D_and_Hk2D
 SUBROUTINE WriteSpatioTemporalSpectrum(rhok, ukx, uky, bkx, bky, time)
 double complex, intent(in) :: rhok(Nh,N), ukx(Nh,N), uky(Nh,N), bkx(Nh,N), bky(Nh,N)
 double complex :: Ak1(Nh,N), Ak2(Nh,N)
-double precision :: time, tmpk1(Nh,N)
+double precision :: time !, tmpk1(Nh,N)
 integer :: uSTS=80
 
 character (len=11) :: sts_time='STS_time'
-character (len=15) :: sts_Euxx_x='STS_Euxx_x'
-character (len=15) :: sts_Euxx_y='STS_Euxx_y'
-character (len=15) :: sts_Euyy_x='STS_Euyy_x'
-character (len=15) :: sts_Euyy_y='STS_Euyy_y'
-character (len=15) :: sts_Ebxx_x='STS_Ebxx_x'
-character (len=15) :: sts_Ebxx_y='STS_Ebxx_y'
-character (len=15) :: sts_Ebyy_x='STS_Ebyy_x'
-character (len=15) :: sts_Ebyy_y='STS_Ebyy_y'
+! character (len=15) :: sts_Euxx_x='STS_Euxx_x'
+! character (len=15) :: sts_Euxx_y='STS_Euxx_y'
+! character (len=15) :: sts_Euyy_x='STS_Euyy_x'
+! character (len=15) :: sts_Euyy_y='STS_Euyy_y'
+! character (len=15) :: sts_Ebxx_x='STS_Ebxx_x'
+! character (len=15) :: sts_Ebxx_y='STS_Ebxx_y'
+! character (len=15) :: sts_Ebyy_x='STS_Ebyy_x'
+! character (len=15) :: sts_Ebyy_y='STS_Ebyy_y'
 character (len=11) :: sts_uxkx='STS_uxkx'
 character (len=11) :: sts_uxky='STS_uxky'
 character (len=11) :: sts_uykx='STS_uykx'
@@ -289,37 +289,37 @@ OPEN(uSTS,file=sts_time,position='append',form='formatted')
 write(uSTS,*) time
 close(uSTS)
 
-tmpk1(:,:) = 0.5*(abs(ukx)**2)
-OPEN (uSTS, file=STS_Euxx_x, access='stream', position='append',form='unformatted')
-write(uSTS) tmpk1(1,:) ! ky=0
-close(uSTS)
-OPEN (uSTS, file=STS_Euxx_y, access='stream', position='append',form='unformatted')
-write(uSTS) tmpk1(:,1) ! kx=0
-close(uSTS)
+! tmpk1(:,:) = 0.5*(abs(ukx)**2)
+! OPEN (uSTS, file=STS_Euxx_x, access='stream', position='append',form='unformatted')
+! write(uSTS) tmpk1(1,:) ! ky=0
+! close(uSTS)
+! OPEN (uSTS, file=STS_Euxx_y, access='stream', position='append',form='unformatted')
+! write(uSTS) tmpk1(:,1) ! kx=0
+! close(uSTS)
 
-tmpk1(:,:) = 0.5*(abs(uky)**2)
-OPEN (uSTS, file=STS_Euyy_x, access='stream', position='append',form='unformatted')
-write(uSTS) tmpk1(1,:) ! ky=0
-close(uSTS)
-OPEN (uSTS, file=STS_Euyy_y, access='stream', position='append',form='unformatted')
-write(uSTS) tmpk1(:,1) ! kx=0
-close(uSTS)
+! tmpk1(:,:) = 0.5*(abs(uky)**2)
+! OPEN (uSTS, file=STS_Euyy_x, access='stream', position='append',form='unformatted')
+! write(uSTS) tmpk1(1,:) ! ky=0
+! close(uSTS)
+! OPEN (uSTS, file=STS_Euyy_y, access='stream', position='append',form='unformatted')
+! write(uSTS) tmpk1(:,1) ! kx=0
+! close(uSTS)
 
-tmpk1(:,:) = 0.5*(abs(bkx)**2)
-OPEN (uSTS, file=STS_Ebxx_x, access='stream', position='append',form='unformatted')
-write(uSTS) tmpk1(1,:) ! ky=0
-close(uSTS)
-OPEN (uSTS, file=STS_Ebxx_y, access='stream', position='append',form='unformatted')
-write(uSTS) tmpk1(:,1) ! kx=0
-close(uSTS)
+! tmpk1(:,:) = 0.5*(abs(bkx)**2)
+! OPEN (uSTS, file=STS_Ebxx_x, access='stream', position='append',form='unformatted')
+! write(uSTS) tmpk1(1,:) ! ky=0
+! close(uSTS)
+! OPEN (uSTS, file=STS_Ebxx_y, access='stream', position='append',form='unformatted')
+! write(uSTS) tmpk1(:,1) ! kx=0
+! close(uSTS)
 
-tmpk1(:,:) = 0.5*(abs(bky)**2)
-OPEN (uSTS, file=STS_Ebyy_x, access='stream', position='append',form='unformatted')
-write(uSTS) tmpk1(1,:) ! ky=0
-close(uSTS)
-OPEN (uSTS, file=STS_Ebyy_y, access='stream', position='append',form='unformatted')
-write(uSTS) tmpk1(:,1) ! kx=0
-close(uSTS)
+! tmpk1(:,:) = 0.5*(abs(bky)**2)
+! OPEN (uSTS, file=STS_Ebyy_x, access='stream', position='append',form='unformatted')
+! write(uSTS) tmpk1(1,:) ! ky=0
+! close(uSTS)
+! OPEN (uSTS, file=STS_Ebyy_y, access='stream', position='append',form='unformatted')
+! write(uSTS) tmpk1(:,1) ! kx=0
+! close(uSTS)
 
 OPEN (uSTS, file=sts_uxkx, access='stream', position='append',form='unformatted')
 write(uSTS) ukx(1,:) ! ky=0

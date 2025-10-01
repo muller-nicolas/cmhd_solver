@@ -65,5 +65,9 @@ ax[2].plot(x, (x/x[0])**(-2.)*Sr[ksta], color='k', ls='--',linewidth=1.)
 
 ax[0].legend(ncol=2)
 
+print(Su[0])
+print(Sb[0])
+print(Sr[0])
+
 # plt.savefig("Figure-spectrum-Eu.png")
 plt.show()

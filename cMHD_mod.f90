@@ -14,6 +14,7 @@ implicit none
 ! TODO: pointers
 double complex  , dimension(:,:), allocatable :: tmpk1, tmpk2, tmpk3
 double precision, dimension(:,:), allocatable :: tmp1, tmp2, tmp3
+double precision :: eps = 0.d-15
 
 contains
 
@@ -97,7 +98,6 @@ END SUBROUTINE RHS1
 SUBROUTINE RHS2(rhok,ukx,uky,bkx,bky,nonlinukx)
 double complex :: rhok(Nh,N), ukx(Nh,N), uky(Nh,N), bkx(Nh,N), bky(Nh,N)
 double complex :: nonlinukx(Nh,N)
-double precision :: eps = 1.d-10
 ! uxt = -ux*uxdx - uy*uxdy - by*(curl(b))/(1+rho)
 
 ! No linear terms
@@ -140,17 +140,17 @@ END SUBROUTINE RHS2
 SUBROUTINE RHS3(rhok,ukx,uky,bkx,bky,nonlinuky)
 double complex :: rhok(Nh,N), ukx(Nh,N), uky(Nh,N), bkx(Nh,N), bky(Nh,N)
 double complex :: nonlinuky(Nh,N)
-double precision :: eps = 1.d-10
-! uyt = - ux*uydx - uy*uydy + (bx+1)*(curl(b))/(1+rho)
+! uyt = - ux*uydx - uy*uydy + (bx+b0)*curl(b)/(1+rho) with b0=1
 
 ! Add linear terms
 call curl(bkx,bky,tmpk2)
 nonlinuky = tmpk2
+! nonlinuky = 0.d0
 
 ! Nonlinear terms
 tmpk1 = rhok
 tmpk3 = bkx
-! call curl(bkx,bky,tmpk2)
+! print *,tmp3(60,120)
 call FFT_SP(tmpk1,tmp1)
 call FFT_SP(tmpk2,tmp2)
 call FFT_SP(tmpk3,tmp3)
@@ -161,6 +161,8 @@ call FFT_SP(tmpk3,tmp3)
 tmp3 = tmp3*tmp2/(1.d0+tmp1+eps)
 tmp3 = tmp3 - tmp1*tmp2
 tmp3 = tmp3 + 0.5*tmp1**2*tmp2
+! print *,tmp3(60,120)
+
 ! tmp3 = tmp3*(tmp2 - tmp1) ! Taylor
 ! tmp3 = tmp2*(1.d0 + tmp3 - tmp1) ! Taylor
 ! NOTE: The correct expression is the one not working, wihtout adding the linear term in nonlinuky, but that doesn't work.

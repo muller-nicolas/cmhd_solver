@@ -73,7 +73,10 @@ ksta = int(kinj) - 1
 kend = kmax
 x = k[ksta:kmax]
 ax[0].plot(x, (x/x[0])**(-2.)*Su[ksta], color='k', ls='--',linewidth=1., label=r'$k^{-2}$')
-ax[1].plot(x, (x/x[2])**(-2.)*SA1[ksta+2], color='k', ls='--',linewidth=1., label=r'$k^{-2}$')
+ax[0].plot(x, (x/x[0])**(-2)*Sb[ksta], color='k', ls='--',linewidth=1.)
+ax[0].plot(x, (x/x[0])**(-5/2.)*Su[ksta], color='r', ls='--',linewidth=1., label=r'$k^{-5/2}$')
+
+ax[1].plot(x, (x/x[2])**(-2.)*SAe[ksta+2], color='k', ls='--',linewidth=1., label=r'$k^{-2}$')
 
 ax[0].legend(ncol=1)
 ax[1].legend(ncol=1)

@@ -70,12 +70,16 @@ for i,filename in enumerate(filenames):
     # plot = ax[i].imshow(np.log(Omega[OM-sz:OM+sz,:]), extent=(k[0],k[-1],w[OM2-sz],w[OM2+sz]), aspect='auto', cmap=cmap, vmin=vmin, vmax=vmax)
 
     ax[i].set_title(title)
-    ax[i].set_xlabel(r'$k$')
     ax[i].set_ylabel(r'$\omega$')
 
 ax[0].set_xlim(left=0, right=kmax+0)
 # ax.set_ylim(bottom=-2, top=N//2)
 # fig.colorbar(plot)
+
+ax[0].set_xlabel(r'$k_\parallel$')
+ax[1].set_xlabel(r'$k_\perp$')
+ax[2].set_xlabel(r'$k_\parallel$')
+ax[3].set_xlabel(r'$k_\perp$')
 
 beta = 1
 b0 = 1

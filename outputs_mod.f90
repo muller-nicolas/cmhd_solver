@@ -92,7 +92,7 @@ do i = 1, N
         EU = EU + (abs(ukx(j,i))**2 + abs(uky(j,i))**2)
         EB = EB + (abs(bkx(j,i))**2 + abs(bky(j,i))**2)
     end do
-    EU = EU + 0.5*(abs(ukx(Nh,i))**2 + abs(uky(Nh,i))**2)
+    EU = EU + 0.5*(abs(ukx(Nh,i))**2 + abs(uky(Nh,i))**2) ! Not necessary because of dealiasing they are zero
     EB = EB + 0.5*(abs(bkx(Nh,i))**2 + abs(bky(Nh,i))**2)
 end do
 
