@@ -26,7 +26,7 @@ PYTHON = /usr/local/opt/python@3.9/bin/python3.9
 all: CMHD2D
 
 clean:
-	rm -f out_* *.mod STS* restart-* # *.exe 
+	rm -f out_* *.mod STS* restart-* field_* # *.exe 
 
 compile_all: CMHD2D 
 

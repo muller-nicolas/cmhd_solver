@@ -9,7 +9,6 @@
 ! TODO: save fields: rho, ux, uy, bx, by, and remove and adapt the restart
 ! TODO: handle precision globally (for practical purposes)
 ! TODO: Parallelisation: GPU
-! TODO: RK4 (Numerical precision)
 
 Program CMHD
 

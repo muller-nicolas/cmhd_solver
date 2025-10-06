@@ -40,7 +40,7 @@ def load_fields(path, name, time, N):
         fieldy = load_fields(path, 'by', time, N)
         field = derivex(fieldx) + derivey(fieldy)
     else:
-        filename = path + 'out_' + name + f'-2D-{time}'
+        filename = path + 'field_' + name + f'-2D-{time}'
         field = np.fromfile(filename, dtype=np.float64).reshape((N,N))
     return field
 

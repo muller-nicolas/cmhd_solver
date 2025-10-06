@@ -168,10 +168,12 @@ character (len=21) :: animU1D='out_spectrumEU-1D-'
 character (len=21) :: animB1D='out_spectrumEB-1D-'
 character (len=21) :: animEk='out_spectrumEk-1D-'
 character (len=22) :: animrho1D='out_spectrumrho-1D-'
-character (len=22) :: animAk1='out_spectrumAk1-1D-'
-character (len=22) :: animAk2='out_spectrumAk2-1D-'
 character (len=22) :: animEAk='out_spectrumEAk-1D-'
 character (len=22) :: animHAk='out_spectrumHAk-1D-'
+character (len=25) :: animEUpara='out_spectrumEUpara-1D-'
+character (len=25) :: animEUperp='out_spectrumEUperp-1D-'
+character (len=25) :: animEBpara='out_spectrumEBpara-1D-'
+character (len=25) :: animEBperp='out_spectrumEBperp-1D-'
 
 allocate (spec1d(Nh), spec2(Nh))
 allocate(Ak1(Nh,N), Ak2(Nh,N))
@@ -208,18 +210,6 @@ close(31)
 
 ! Canonical variables
 call canonical_variables(ukx,uky,bkx,bky,Ak1,Ak2)
-! Ak+
-call spectrumrho1D(Ak1,spec1d)
-write(animAk1(20:22),'(i3)') istore_sp
-open(31, file=animAk1, status='new',form='formatted')
-write(31,'(1000(1X,E25.18))') spec1d(:)
-close(31)
-! Ak-
-call spectrumrho1D(Ak2,spec1d)
-write(animAk2(20:22),'(i3)') istore_sp
-open(31, file=animAk2, status='new',form='formatted')
-write(31,'(1000(1X,E25.18))') spec1d(:)
-close(31)
 
 call spectrumAk(Ak1,Ak2,spec1d,spec2)
 ! Ek
@@ -233,6 +223,30 @@ open(31, file=animHAk, status='new',form='formatted')
 write(31,'(1000(1X,E25.18))') spec2(:)
 close(31)
 
+
+! Anisotropic spectra
+! EU
+call anisotropic_spectra(ukx,uky,spec1d,spec2)
+write(animEUpara(23:25),'(i3)') istore_sp
+write(animEUperp(23:25),'(i3)') istore_sp
+open(31, file=animEUpara, status='new',form='formatted')
+open(32, file=animEUperp, status='new',form='formatted')
+write(31,'(1000(1X,E25.18))') spec1d(:)
+write(32,'(1000(1X,E25.18))') spec2(:)
+close(31)
+close(32)
+
+! EB
+call anisotropic_spectra(bkx,bky,spec1d,spec2)
+write(animEBpara(23:25),'(i3)') istore_sp
+write(animEBperp(23:25),'(i3)') istore_sp
+open(31, file=animEBpara, status='new',form='formatted')
+open(32, file=animEBperp, status='new',form='formatted')
+write(31,'(1000(1X,E25.18))') spec1d(:)
+write(32,'(1000(1X,E25.18))') spec2(:)
+close(31)
+close(32)
+
 istore_sp = istore_sp + 1
 
 deallocate (spec1d, spec2)
@@ -244,44 +258,44 @@ SUBROUTINE save_fields(rhok,ukx,uky,bkx,bky,istore_fields)
 double complex, intent(in) :: rhok(Nh,N), ukx(Nh,N), uky(Nh,N), bkx(Nh,N), bky(Nh,N)
 integer, intent(inout) :: istore_fields
 
-character (len=14) :: animO='out_rho-2D-'
-character (len=13) :: animUx='out_ux-2D-'
-character (len=13) :: animUy='out_uy-2D-'
-character (len=13) :: animBx='out_bx-2D-'
-character (len=13) :: animBy='out_by-2D-'
+character (len=16) :: animO='field_rho-2D-'
+character (len=15) :: animUx='field_ux-2D-'
+character (len=15) :: animUy='field_uy-2D-'
+character (len=15) :: animBx='field_bx-2D-'
+character (len=15) :: animBy='field_by-2D-'
 
-allocate( tmpk1(Nh,N), tmp1(N,N))
+allocate(tmpk1(Nh,N), tmp1(N,N))
 
 tmpk1 = rhok
-write(animO(12:14),'(i3)') istore_fields
+write(animO(14:16),'(i3)') istore_fields
 call FFT_SP(tmpk1,tmp1)
 open(30, file = animO, status='replace', form='unformatted', access='stream')
 write(30) tmp1(:,:)
 close(30)
 !
 tmpk1 = ukx
-write(animUx(11:13),'(i3)') istore_fields
+write(animUx(13:15),'(i3)') istore_fields
 call FFT_SP(tmpk1,tmp1)
 open(30, file = animUx, status='replace', form='unformatted', access='stream')
 write(30) tmp1(:,:)
 close(30)
 !
 tmpk1 = uky
-write(animUy(11:13),'(i3)') istore_fields
+write(animUy(13:15),'(i3)') istore_fields
 call FFT_SP(tmpk1,tmp1)
 open(30, file = animUy, status='replace', form='unformatted', access='stream')
 write(30) tmp1(:,:)
 close(30)
 !
 tmpk1 = bkx
-write(animBx(11:13),'(i3)') istore_fields
+write(animBx(13:15),'(i3)') istore_fields
 call FFT_SP(tmpk1,tmp1)
 open(30, file = animBx, status='replace', form='unformatted', access='stream')
 write(30) tmp1(:,:)
 close(30)
 !
 tmpk1 = bky
-write(animBy(11:13),'(i3)') istore_fields
+write(animBy(13:15),'(i3)') istore_fields
 call FFT_SP(tmpk1,tmp1)
 open(30, file = animBy, status='replace', form='unformatted', access='stream')
 write(30) tmp1(:,:)

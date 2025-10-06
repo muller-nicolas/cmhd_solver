@@ -210,6 +210,40 @@ RETURN
 END SUBROUTINE spectrumAk
 
 !*****************************************************************
+SUBROUTINE anisotropic_spectra(Akx,Aky,spec_para,spec_perp)
+! Computes the 1D spectrum of the 2D fields Akx and Aky. Works for velocity and magnetic fields.
+double precision :: spec_perp(Nh), spec_para(Nh)
+double complex, intent(in) :: Akx(Nh,N), Aky(Nh,N)
+integer i, j, k 
+
+spec_para = 0.
+spec_perp = 0.
+!$omp parallel do private(i,j,k) reduction(+:spec_para,spec_perp)
+do i = 1, Nh
+    j = 1
+    k = int(kx(i)/dk+0.5) + 1
+    spec_para(k) = spec_para(k) + (abs(Akx(j,i))**2 + abs(Aky(j,i))**2)
+    k = int(ky(j)/dk+0.5) + 1
+    spec_perp(k) = spec_perp(k) + (abs(Akx(j,i))**2 + abs(Aky(j,i))**2)
+    do j = 2, Nh-1
+        k = int(kx(i)/dk+0.5) + 1
+        spec_para(k) = spec_para(k) + 2*(abs(Akx(j,i))**2 + abs(Aky(j,i))**2)
+        k = int(ky(j)/dk+0.5) + 1
+        spec_perp(k) = spec_perp(k) + 2*(abs(Akx(j,i))**2 + abs(Aky(j,i))**2)
+    end do
+    j = Nh
+    k = int(kx(i)/dk+0.5) + 1
+    spec_para(k) = spec_para(k) + (abs(Akx(j,i))**2 + abs(Aky(j,i))**2)
+    k = int(ky(j)/dk+0.5) + 1
+    spec_perp(k) = spec_perp(k) + (abs(Akx(j,i))**2 + abs(Aky(j,i))**2)
+end do
+spec_para = spec_para/real(N,kind=8)**4
+spec_perp = spec_perp/real(N,kind=8)**4
+
+RETURN
+END SUBROUTINE anisotropic_spectra
+
+!*****************************************************************
 SUBROUTINE canonical_variables(ukx,uky,bkx,bky,Ak1,Ak2)
 double complex, intent(in) :: ukx(Nh,N), uky(Nh,N), bkx(Nh,N), bky(Nh,N)
 double complex, intent(out) :: Ak1(Nh,N), Ak2(Nh,N)
