@@ -221,18 +221,18 @@ spec_perp = 0.
 !$omp parallel do private(i,j,k) reduction(+:spec_para,spec_perp)
 do i = 1, Nh
     j = 1
-    k = int(kx(i)/dk+0.5) + 1
+    k = int(abs(kx(i))/dk+0.5) + 1
     spec_para(k) = spec_para(k) + (abs(Akx(j,i))**2 + abs(Aky(j,i))**2)
     k = int(ky(j)/dk+0.5) + 1
     spec_perp(k) = spec_perp(k) + (abs(Akx(j,i))**2 + abs(Aky(j,i))**2)
     do j = 2, Nh-1
-        k = int(kx(i)/dk+0.5) + 1
+        k = int(abs(kx(i))/dk+0.5) + 1
         spec_para(k) = spec_para(k) + 2*(abs(Akx(j,i))**2 + abs(Aky(j,i))**2)
         k = int(ky(j)/dk+0.5) + 1
         spec_perp(k) = spec_perp(k) + 2*(abs(Akx(j,i))**2 + abs(Aky(j,i))**2)
     end do
     j = Nh
-    k = int(kx(i)/dk+0.5) + 1
+    k = int(abs(kx(i))/dk+0.5) + 1
     spec_para(k) = spec_para(k) + (abs(Akx(j,i))**2 + abs(Aky(j,i))**2)
     k = int(ky(j)/dk+0.5) + 1
     spec_perp(k) = spec_perp(k) + (abs(Akx(j,i))**2 + abs(Aky(j,i))**2)
@@ -253,20 +253,14 @@ integer :: i,j
 
 do i=1,N
     do j=1,Nh
-        ! Ak1(j,i) = ky(j)/kx(i)*ukx(j,i) - uky(j,i) - sqrt(kd(j,i))/ky(j)*bkx(j,i)
-        ! Ak2(j,i) = ky(j)/kx(i)*ukx(j,i) - uky(j,i) + sqrt(kd(j,i))/ky(j)*bkx(j,i)
         tmpk1 = ky(j)/kx(i)*ukx(j,i) - uky(j,i)
         tmpk2 = (kx(i)*bky(j,i) - ky(j)*bkx(j,i)) / (sqrt(kd(j,i))+eps)
-        ! tmpk1 = ky(j)/kx(i)*ukx(j,i) - uky(j,i)
-        ! tmpk2 = - bkx(j,i)*sqrt(kd(j,i)) / ky(j)
         Ak1(j,i) = tmpk1 + tmpk2
         Ak2(j,i) = tmpk1 - tmpk2
     end do
 end do
 Ak1(:,1) = 0.
 Ak2(:,1) = 0.
-! Ak1(1,:) = 0.
-! Ak2(1,:) = 0.
 
 RETURN
 END SUBROUTINE canonical_variables
@@ -296,14 +290,6 @@ double precision :: time !, tmpk1(Nh,N)
 integer :: uSTS=80
 
 character (len=11) :: sts_time='STS_time'
-! character (len=15) :: sts_Euxx_x='STS_Euxx_x'
-! character (len=15) :: sts_Euxx_y='STS_Euxx_y'
-! character (len=15) :: sts_Euyy_x='STS_Euyy_x'
-! character (len=15) :: sts_Euyy_y='STS_Euyy_y'
-! character (len=15) :: sts_Ebxx_x='STS_Ebxx_x'
-! character (len=15) :: sts_Ebxx_y='STS_Ebxx_y'
-! character (len=15) :: sts_Ebyy_x='STS_Ebyy_x'
-! character (len=15) :: sts_Ebyy_y='STS_Ebyy_y'
 character (len=11) :: sts_uxkx='STS_uxkx'
 character (len=11) :: sts_uxky='STS_uxky'
 character (len=11) :: sts_uykx='STS_uykx'
@@ -322,38 +308,6 @@ character (len=12) :: sts_Ak2ky='STS_Ak2ky'
 OPEN(uSTS,file=sts_time,position='append',form='formatted')
 write(uSTS,*) time
 close(uSTS)
-
-! tmpk1(:,:) = 0.5*(abs(ukx)**2)
-! OPEN (uSTS, file=STS_Euxx_x, access='stream', position='append',form='unformatted')
-! write(uSTS) tmpk1(1,:) ! ky=0
-! close(uSTS)
-! OPEN (uSTS, file=STS_Euxx_y, access='stream', position='append',form='unformatted')
-! write(uSTS) tmpk1(:,1) ! kx=0
-! close(uSTS)
-
-! tmpk1(:,:) = 0.5*(abs(uky)**2)
-! OPEN (uSTS, file=STS_Euyy_x, access='stream', position='append',form='unformatted')
-! write(uSTS) tmpk1(1,:) ! ky=0
-! close(uSTS)
-! OPEN (uSTS, file=STS_Euyy_y, access='stream', position='append',form='unformatted')
-! write(uSTS) tmpk1(:,1) ! kx=0
-! close(uSTS)
-
-! tmpk1(:,:) = 0.5*(abs(bkx)**2)
-! OPEN (uSTS, file=STS_Ebxx_x, access='stream', position='append',form='unformatted')
-! write(uSTS) tmpk1(1,:) ! ky=0
-! close(uSTS)
-! OPEN (uSTS, file=STS_Ebxx_y, access='stream', position='append',form='unformatted')
-! write(uSTS) tmpk1(:,1) ! kx=0
-! close(uSTS)
-
-! tmpk1(:,:) = 0.5*(abs(bky)**2)
-! OPEN (uSTS, file=STS_Ebyy_x, access='stream', position='append',form='unformatted')
-! write(uSTS) tmpk1(1,:) ! ky=0
-! close(uSTS)
-! OPEN (uSTS, file=STS_Ebyy_y, access='stream', position='append',form='unformatted')
-! write(uSTS) tmpk1(:,1) ! kx=0
-! close(uSTS)
 
 OPEN (uSTS, file=sts_uxkx, access='stream', position='append',form='unformatted')
 write(uSTS) ukx(1,:) ! ky=0

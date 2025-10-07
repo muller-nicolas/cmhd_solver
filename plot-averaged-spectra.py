@@ -43,20 +43,17 @@ Sk = mean_spectrum(filenames_Ek)
 Sb = mean_spectrum(filenames_EB)
 Sr = mean_spectrum(filenames_rho)
 
-SA1 = mean_spectrum(filenames_Ak1)
-SA2 = mean_spectrum(filenames_Ak2)
-SAe = mean_spectrum(filenames_EAk)
-SAh = mean_spectrum(filenames_HAk)
+SE = mean_spectrum(filenames_EAk)
+SH = mean_spectrum(filenames_HAk)
+SH = np.abs(SH)
 
 ax[0].loglog(k[1:kmax],Su[1:kmax]/1,label= "Eu")
 ax[0].loglog(k[1:kmax],Sb[1:kmax],label= "Eb")
 ax[0].loglog(k[1:kmax],Sr[1:kmax],label= "Erho")
 ax[0].loglog(k[1:kmax],Sk[1:kmax],label= "Ekin")
 
-ax[1].loglog(k[1:kmax],SA1[1:kmax],label="EA1")
-ax[1].loglog(k[1:kmax],SA2[1:kmax],label="EA2")
-ax[1].loglog(k[1:kmax],SAe[1:kmax],label="EAe")
-ax[1].loglog(k[1:kmax],np.abs(SAh[1:kmax]),label="EAh")
+ax[1].loglog(k[1:kmax],SE[1:kmax],label="E(k)")
+ax[1].loglog(k[1:kmax],SH[1:kmax],label="|H(k)|")
 
 ax[0].set_xlabel(r'$k$')
 ax[1].set_xlabel(r'$k$')
@@ -69,14 +66,22 @@ ax[0].set_ylim(bottom=1.e-8)
 ax[0].axvline(kinj, color='k', linestyle='--')
 ax[1].axvline(kinj, color='k', linestyle='--')
 
-ksta = int(kinj) - 1
+ksta = int(kinj) - 0
 kend = kmax
 x = k[ksta:kmax]
-ax[0].plot(x, (x/x[0])**(-2.)*Su[ksta], color='k', ls='--',linewidth=1., label=r'$k^{-2}$')
-ax[0].plot(x, (x/x[0])**(-2)*Sb[ksta], color='k', ls='--',linewidth=1.)
-ax[0].plot(x, (x/x[0])**(-5/2.)*Su[ksta], color='r', ls='--',linewidth=1., label=r'$k^{-5/2}$')
+idx_SA = 7
+ax[0].plot(x, (x/x[0])**(-2.)*Su[ksta]/2, color='k', ls='--',linewidth=1., label=r'$k^{-2}$')
+ax[0].plot(x, (x/x[0])**(-3/2)*Su[ksta]/2, color='r', ls='--',linewidth=1., label=r'$k^{-3/2}$')
+ax[0].plot(x, (x/x[0])**(-5/3)*Su[ksta]/2, color='gray', ls='--',linewidth=1., label=r'$k^{-5/3}$')
+ax[0].plot(x, (x/x[1])**(-3.)*Sk[ksta+1], color='darkorange', ls='-.',linewidth=1., label=r'$k^{-3}$')
 
-ax[1].plot(x, (x/x[2])**(-2.)*SAe[ksta+2], color='k', ls='--',linewidth=1., label=r'$k^{-2}$')
+ax[1].plot(x, (x/x[idx_SA])**(-2.)*SAe[ksta+idx_SA]/2, color='k', ls='--',linewidth=1., label=r'$k^{-2}$')
+ax[1].plot(x, (x/x[idx_SA])**(-3/2)*SAe[ksta+idx_SA]/2, color='r', ls='--',linewidth=1., label=r'$k^{-3/2}$')
+ax[1].plot(x, (x/x[idx_SA])**(-5/3)*SAe[ksta+idx_SA]/2, color='gray', ls='--',linewidth=1., label=r'$k^{-5/3}$')
+
+ax[1].plot(x, (x/x[idx_SA])**(-2.)*SAh[ksta+idx_SA], color='k', ls='--',linewidth=1., label=r'$k^{-2}$')
+ax[1].plot(x, (x/x[idx_SA])**(-3/2)*SAh[ksta+idx_SA], color='r', ls='--',linewidth=1., label=r'$k^{-3/2}$')
+ax[1].plot(x, (x/x[idx_SA])**(-5/3)*SAh[ksta+idx_SA], color='gray', ls='--',linewidth=1., label=r'$k^{-5/3}$')
 
 ax[0].legend(ncol=1)
 ax[1].legend(ncol=1)
