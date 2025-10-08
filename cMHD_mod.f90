@@ -47,11 +47,19 @@ do i = 1, N
         ky3 = ky(j)**3
         dissip_nu = (k4*nu  + alpha + imag*disp*(kx3+ky3))
         dissip_eta= (k4*eta + alpha + imag*disp*(kx3+ky3))
-        nonlinrhok(j,i) = kill(j,i)*(nonlinrhok(j,i) - dissip_nu*rhok(j,i))
-        nonlinukx (j,i) = kill(j,i)*(nonlinukx (j,i) - dissip_nu*ukx(j,i))
-        nonlinuky (j,i) = kill(j,i)*(nonlinuky (j,i) - dissip_nu*uky(j,i))
-        nonlinbkx (j,i) = kill(j,i)*(nonlinbkx (j,i) - dissip_eta*bkx(j,i))
-        nonlinbky (j,i) = kill(j,i)*(nonlinbky (j,i) - dissip_eta*bky(j,i))
+
+        ! nonlinrhok(j,i) = kill(j,i)*(nonlinrhok(j,i)) ! - dissip_nu*rhok(j,i))
+        ! nonlinukx (j,i) = kill(j,i)*(nonlinukx (j,i) - dissip_nu*ukx(j,i))
+        ! nonlinuky (j,i) = kill(j,i)*(nonlinuky (j,i) - dissip_nu*uky(j,i))
+        ! nonlinbkx (j,i) = kill(j,i)*(nonlinbkx (j,i) - dissip_eta*bkx(j,i))
+        ! nonlinbky (j,i) = kill(j,i)*(nonlinbky (j,i) - dissip_eta*bky(j,i))
+        
+        nonlinrhok(j,i) = (nonlinrhok(j,i)) ! - dissip_nu*rhok(j,i))
+        nonlinukx (j,i) = (nonlinukx (j,i) - dissip_nu*ukx(j,i))
+        nonlinuky (j,i) = (nonlinuky (j,i) - dissip_nu*uky(j,i))
+        nonlinbkx (j,i) = (nonlinbkx (j,i) - dissip_eta*bkx(j,i))
+        nonlinbky (j,i) = (nonlinbky (j,i) - dissip_eta*bky(j,i))
+
     end do
 end do
 

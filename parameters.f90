@@ -6,9 +6,9 @@ public
 integer, parameter :: N = 128 ! Resolution
 integer, parameter :: Nh = N/2+1  ! Number of wavenumbers
 integer, parameter :: Na = int(N/3)   
-integer :: nthreads = 1  ! Number of omp threads
-double precision, parameter :: deltaT0 = 5.d-3
-integer, parameter :: nrestart = 0    !*********for a restart => nrestart = 1
+integer :: nthreads = 4  ! Number of omp threads
+double precision, parameter :: deltaT0 = 2.5d-3
+integer, parameter :: nrestart = 199    !*********for a restart => nrestart = 1
 integer, parameter :: seed = 100  ! seed for random number generator
 integer :: istore_sp = 100
 integer :: istore_fields = 100

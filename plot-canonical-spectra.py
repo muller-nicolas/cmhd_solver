@@ -34,10 +34,10 @@ for i in range(nfiles):
     filename_EAk = filenames_Ak1[i]
     filename_HAk = filenames_Ak2[i]
 
-    Su = np.loadtxt(filename_Ak1, dtype=np.float128)  # load data from file
-    Sb = np.loadtxt(filename_Ak2, dtype=np.float128)  # load data from file
-    Se = np.loadtxt(filename_EAk, dtype=np.float128)  # load data from file
-    Sh = np.loadtxt(filename_HAk, dtype=np.float128)  # load data from file
+    Su = np.loadtxt(filename_Ak1, dtype=np.float64)  # load data from file
+    Sb = np.loadtxt(filename_Ak2, dtype=np.float64)  # load data from file
+    Se = np.loadtxt(filename_EAk, dtype=np.float64)  # load data from file
+    Sh = np.loadtxt(filename_HAk, dtype=np.float64)  # load data from file
 
     ax[0].loglog(k[1:kmax],Su[1:kmax],label=f't{i+1}', color=colors[i])
     ax[1].loglog(k[1:kmax],Sb[1:kmax],label=f't{i+1}', color=colors[i])

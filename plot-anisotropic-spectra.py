@@ -22,7 +22,7 @@ P = np.loadtxt('out_parameter')
 kinj = P[3]
 N = int(P[6]) # kmax
 Nh = N//2+1
-kmax = N//3
+kmax = N//2
 k = np.arange(0, kmax)
 
 def mean_spectrum(filenames):
@@ -30,7 +30,7 @@ def mean_spectrum(filenames):
     spec = np.zeros(Nh)
     for i in range(nfiles):
         filename = filenames[i]
-        spec = spec + np.loadtxt(filename, dtype=np.float128)  # load data from file
+        spec = spec + np.loadtxt(filename, dtype=np.float64)  # load data from file
     return spec/nfiles
 
 colors = [ plt.cm.viridis(i/nfiles) for i in range(nfiles) ]

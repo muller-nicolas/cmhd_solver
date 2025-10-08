@@ -3,9 +3,9 @@
 FC = gfortran
 FFLAGS = -O3 -fopenmp -march=native -funroll-loops -ftree-vectorize
 DEBUG = #-g -fbacktrace -fcheck=all -Wall
-LDFLAGS = -L/usr/local/Cellar/fftw/3.3.10_1/lib -I/usr/local/Cellar/fftw/3.3.10_1/include
+LDFLAGS = -L/opt/homebrew/Cellar/fftw/3.3.10_2/lib -I/opt/homebrew/Cellar/fftw/3.3.10_2/include
 LIBS = -lfftw3 -lfftw3_threads -lm
-PYTHON = /usr/local/opt/python@3.9/bin/python3.9
+# PYTHON = /usr/local/opt/python@3.9/bin/python3.9
 
 # Adastra
 # FC = ftn

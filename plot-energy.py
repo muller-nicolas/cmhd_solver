@@ -15,10 +15,18 @@ time = np.loadtxt('out_time')
 
 Etot = Erho + EB + Eint
 # Etot = Erho + EB #+ Eint
+cs = 0.5477
+b0 = 1
 
 Nt = len(EU)
-Urms = np.mean(np.sqrt(EU[Nt//2:]))
-print('Urms',Urms)
+urms = np.mean(np.sqrt(EU[Nt//2:]))
+brms = np.mean(np.sqrt(EB[Nt//2:]))
+krms = np.mean(np.sqrt(Erho[Nt//2:]))
+print('urms',urms)
+print('brms',brms)
+print('krms',krms)
+print('Ms', urms/cs)
+print('Ma', urms/b0)
 
 DeltaT = P[0]
 Nt = P[1]
