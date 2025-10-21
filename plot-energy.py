@@ -15,7 +15,7 @@ time = np.loadtxt('out_time')
 
 Etot = Erho + EB + Eint
 # Etot = Erho + EB #+ Eint
-cs = 0.5477
+cs = 1.0
 b0 = 1
 
 Nt = len(EU)

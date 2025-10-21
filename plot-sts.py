@@ -8,12 +8,12 @@ vmax = -15
 P = np.loadtxt('out_parameter')
 N = int(P[6]) # N
 kmax = N//3
-cs = 0.3
+cs = 1.0
 b0 = 1.0
 beta = cs**2 / b0**2
 kpar = 5
 kper = 5 
-disp = 1e-3 
+disp = 0e-3 
 
 cmap = plt.cm.Blues
 

@@ -45,14 +45,16 @@ do i = 1, N
     do j = 1, Nh
         k4 = kd(j,i)*kd(j,i)
         ky3 = ky(j)**3
-        dissip_nu = (k4*nu  + alpha + imag*disp*(kx3+ky3)) ! Hyperviscosity
-        dissip_eta= (k4*eta + alpha - imag*disp*(kx3+ky3))
-        ! dissip_nu = (kd(j,i)*nu  + alpha + imag*disp*(kx3+ky3)) ! Viscosity
-        ! dissip_eta= (kd(j,i)*eta + alpha - imag*disp*(kx3+ky3))
+        ! dissip_nu = (k4*nu  + alpha + imag*disp*(kx3+ky3)) ! Hyperviscosity
+        ! dissip_eta= (k4*eta + alpha - imag*disp*(kx3+ky3))
+        dissip_nu = (kd(j,i)*nu  + alpha + imag*disp*(kx3+ky3)) ! Viscosity
+        dissip_eta= (kd(j,i)*eta + alpha - imag*disp*(kx3+ky3))
 
         nonlinrhok(j,i) = kill(j,i)*(nonlinrhok(j,i)) ! - dissip_nu*rhok(j,i))
-        nonlinukx (j,i) = kill(j,i)*(nonlinukx (j,i) - dissip_nu*ukx(j,i) - nu3 * kd(j,i)*kx(i)*(kx(i)*ukx(j,i) + ky(j)*uky(j,i)))
-        nonlinuky (j,i) = kill(j,i)*(nonlinuky (j,i) - dissip_nu*uky(j,i) - nu3 * kd(j,i)*ky(j)*(kx(i)*ukx(j,i) + ky(j)*uky(j,i)))
+        ! nonlinukx (j,i) = kill(j,i)*(nonlinukx (j,i) - dissip_nu*ukx(j,i) - nu3 * kd(j,i)*kx(i)*(kx(i)*ukx(j,i) + ky(j)*uky(j,i)))
+        ! nonlinuky (j,i) = kill(j,i)*(nonlinuky (j,i) - dissip_nu*uky(j,i) - nu3 * kd(j,i)*ky(j)*(kx(i)*ukx(j,i) + ky(j)*uky(j,i)))
+        nonlinukx (j,i) = kill(j,i)*(nonlinukx (j,i) - dissip_nu*ukx(j,i) - nu3 * kx(i)*(kx(i)*ukx(j,i) + ky(j)*uky(j,i)))
+        nonlinuky (j,i) = kill(j,i)*(nonlinuky (j,i) - dissip_nu*uky(j,i) - nu3 * ky(j)*(kx(i)*ukx(j,i) + ky(j)*uky(j,i)))
         nonlinbkx (j,i) = kill(j,i)*(nonlinbkx (j,i) - dissip_eta*bkx(j,i))
         nonlinbky (j,i) = kill(j,i)*(nonlinbky (j,i) - dissip_eta*bky(j,i))
         
@@ -221,7 +223,8 @@ call FFT_SP(tmpk1,tmp1)
 call FFT_SP(tmpk2,tmp2)
 call FFT_SP(tmpk3,tmp3)
 ! (bx+1)*(bxdy - bydx) / (1+rho)
-! Correct expression: Not working
+! Correct expression: Not working -> actually it works but at when the magnetic energy is computed, it increases in time, but not the real fields.
+! Maybe it is because the energy is computed in fourier space, and the mode k=0 is not well treated. I don't know.
 ! tmp3 = (1.d0 + tmp3)*tmp2/(1.d0+tmp1+eps)
 ! Taylor expansion: Working
 ! !$omp parallel do private(i,j)

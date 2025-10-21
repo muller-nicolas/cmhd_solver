@@ -63,10 +63,13 @@ nfiles = (iend-ista)//iskip + 1
 ekin = np.zeros(nfiles) 
 emag = np.zeros(nfiles) 
 eint = np.zeros(nfiles)
+div = np.zeros(nfiles)
 
 for i in range(ista,iend+1,iskip):
     ux = load_fields(path, 'ux', i, N)
     uy = load_fields(path, 'uy', i, N)
+    divu = derivex(ux) + derivey(uy)
+    div[i-ista] = np.mean(divu**2)
     ekin[i-ista] = 0.5*np.mean(ux**2 + uy**2)
     bx = load_fields(path, 'bx', i, N)
     print(bx)
@@ -87,5 +90,8 @@ ax.plot(t, eint, label='E_int')
 ax.plot(t, etot/3, label='E_tot')
 
 ax.legend()
+
+plt.figure()
+plt.plot(div, label='divu^2')
 
 plt.show()
