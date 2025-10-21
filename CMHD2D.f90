@@ -3,10 +3,12 @@
 !  Sébastien Galtier - LPP - Version 8 (July 2025)
 !*********************************************************************
 
+! TODO: correct time at restart
+! TODO: Computation of flux
+! TODO: Compare implicit vs explicit dissipation
 ! TODO: Read parameters from file after compilation
 ! TODO: Pointers for fields in memory (Reduce memory usage)
 ! TODO: write also forcing parameters in file
-! TODO: save fields: rho, ux, uy, bx, by, and remove and adapt the restart
 ! TODO: handle precision globally (for practical purposes)
 ! TODO: Parallelisation: GPU
 
@@ -24,6 +26,8 @@ implicit none
 
 double precision t1, t2
 double precision ta, time, timests, phase
+character(len=256) :: line, lastline
+integer :: ios
 
 double precision, dimension(:,:), allocatable :: ux1, uy1, bx1, by1, rho1
 double complex, dimension(:,:), allocatable :: ukx1, uky1, bkx1, bky1, rhok1
@@ -83,6 +87,7 @@ if (nrestart .eq. 0) then
        nu0, eta, alpha, disp
     close(31)
 
+    ! Initial conditions
     ! Initilize velocity field
     call RandomInit(ukx1,uky1)
     ! call GaussianInit(ukx1,uky1)
@@ -112,11 +117,37 @@ elseif (nrestart .ne. 0) then
     read(66) by1(:,:)
     close(66)
 
+    open(unit=66, file='out_time', status='old', action='read')
+    do
+        read(66, '(A)', iostat=ios) line
+        if (ios /= 0) exit
+        lastline = trim(line)
+    end do
+    close(66)
+    read(lastline, *) time
+
+    if (sts.eq.1) then
+        open(unit=66, file='STS_time', status='old', action='read')
+        do
+            read(66, '(A)', iostat=ios) line
+            if (ios /= 0) exit
+            lastline = trim(line)
+        end do
+        close(66)
+        read(lastline, *) timests
+    endif
+
     call FFT_PS(rho1,rhok1)
     call FFT_PS(ux1,ukx1)
     call FFT_PS(uy1,uky1)
     call FFT_PS(bx1,bkx1)
     call FFT_PS(by1,bky1)
+
+    rhok1 = kill*rhok1
+    ukx1 = kill*ukx1
+    uky1 = kill*uky1
+    bkx1 = kill*bkx1
+    bky1 = kill*bky1
 
     istore_sp = nrestart+1
     istore_fields = nrestart+1
@@ -125,11 +156,12 @@ end if
 ! Initialize forcing in ux0 and uy0
 ! call GaussianF(fukx,fuky)
 call RandomF(fukx,fuky)
+! call RandomF_Ak(fukx,fuky,fbkx,fbky)
 ! call RandomF(fbkx,fbky)
-fbkx = 0.0
-fbky = 0.0
+! fbkx = 0.0
+! fbky = 0.0
 ! call PoloidalRandomF(fukx,fuky)
-corr = int(corr0/deltaT)
+corr = min(int(corr0/deltaT),1)
 
 !! Do one iteration of the time-stepping for AB2
 call RHS(rhok1,ukx1,uky1,bkx1,bky1,nonlinrhok0,nonlinukx0,nonlinuky0,nonlinbkx0,nonlinbky0)
@@ -150,6 +182,7 @@ bky1  = bky1  + deltaT*nonlinbky0
 !*****************************  Main loop  ******************************
 do it = 1, ndeltaT
 
+! Random phase for the forcing
 if (mod(it,corr).eq.0) then
     !$omp parallel do private(i,j,phase)
     do i=1,N
@@ -170,8 +203,8 @@ if (mod(it,corr).eq.0) then
     end do
 end if
 
+! Check evolution
 call check_nan(rhok1) 
-
 
 !!! Runge-Kutta 4 (RK4)
 ! call RHS(rhok0,ukx0,uky0,bkx0,bky0,nonlinrhok0,nonlinukx0,nonlinuky0,nonlinbkx0,nonlinbky0)
@@ -238,6 +271,30 @@ call check_nan(rhok1)
 
 !! Adams-Bashforth method (AB2)
 call RHS(rhok1,ukx1,uky1,bkx1,bky1,nonlinrhok1,nonlinukx1,nonlinuky1,nonlinbkx1,nonlinbky1)
+
+! !$omp parallel do private(i,j)
+! do i=1,N
+!     do j=1,Nh
+!         nonlinukx1(j,i) = nonlinukx1(j,i) + fukx(j,i)
+!         nonlinuky1(j,i) = nonlinuky1(j,i) + fuky(j,i)
+!         nonlinbkx1(j,i) = nonlinbkx1(j,i) + fbkx(j,i)
+!         nonlinbky1(j,i) = nonlinbky1(j,i) + fbky(j,i)
+
+!         rhok1(j,i) = rhok1(j,i) + deltaT*(1.5*nonlinrhok1(j,i) - 0.5*nonlinrhok0(j,i))
+!         ukx1(j,i)  = ukx1(j,i)  + deltaT*(1.5*nonlinukx1(j,i)  - 0.5*nonlinukx0(j,i))
+!         uky1(j,i)  = uky1(j,i)  + deltaT*(1.5*nonlinuky1(j,i)  - 0.5*nonlinuky0(j,i))
+!         bkx1(j,i)  = bkx1(j,i)  + deltaT*(1.5*nonlinbkx1(j,i)  - 0.5*nonlinbkx0(j,i))
+!         bky1(j,i)  = bky1(j,i)  + deltaT*(1.5*nonlinbky1(j,i)  - 0.5*nonlinbky0(j,i))
+
+!         ! Rename variables for saving and use them as initial values for next loop (AB2)
+!         nonlinrhok0(j,i)=nonlinrhok1(j,i)
+!         nonlinukx0(j,i)=nonlinukx1(j,i)
+!         nonlinuky0(j,i)=nonlinuky1(j,i)
+!         nonlinbkx0(j,i)=nonlinbkx1(j,i)
+!         nonlinbky0(j,i)=nonlinbky1(j,i)
+!     end do
+! end do
+
 nonlinukx1 = nonlinukx1 + fukx
 nonlinuky1 = nonlinuky1 + fuky
 nonlinbkx1 = nonlinbkx1 + fbkx
@@ -261,10 +318,10 @@ nonlinbky0=nonlinbky1
 !**************** Write quantities
 ! Compute and write energy
 if ( (mod(it,inrj) .eq. 0) ) then
-call save_energy(rhok1,ukx1,uky1,bkx1,bky1)
-time = time + dfloat(inrj)*deltaT
-open(52, file='out_time', position='append',form='formatted')
-write(52,*) time
+    call save_energy(rhok1,ukx1,uky1,bkx1,bky1)
+    time = time + dfloat(inrj)*deltaT
+    open(52, file='out_time', position='append',form='formatted')
+    write(52,*) time
 close(52)
 
 !****************Adaptive timestep
@@ -282,14 +339,14 @@ end if
 
 ! Compute and write spectra
 if ( (mod(it,ispec) .eq. 0) ) then
-print *, it
-call save_spectra(rhok1,ukx1,uky1,bkx1,bky1,istore_sp)
+    print *, it
+    call save_spectra(rhok1,ukx1,uky1,bkx1,bky1,istore_sp)
 endif
 
 ! Write fields
 ! rho, wz, jz, divu, divb
 if (mod(it,ifields) .eq. 0) then
-call save_fields(rhok1,ukx1,uky1,bkx1,bky1,istore_fields)
+    call save_fields(rhok1,ukx1,uky1,bkx1,bky1,istore_fields)
 end if
 
 ! Save spatio-temporal spectra
@@ -303,12 +360,6 @@ end if
 end do ! end of the temporal loop
 
 !****************End of the time loop
-
-! Save fields in spectral space for restart
-! write(animR(9:11),'(i3)') istore_fields
-! open(30, file = animR, status = 'new',form='unformatted')
-! write(30) rhok1(:,:),ukx1(:,:),uky1(:,:),bkx1(:,:),bky1(:,:)
-! close(30)
 
 t2 = omp_get_wtime()
 write(*,*) "cpu time", t2-t1
@@ -461,10 +512,11 @@ END SUBROUTINE GaussianInit
 ! RETURN
 ! END SUBROUTINE RandomF
 
+!*****************************************************************
+
 SUBROUTINE RandomF(Akx,Aky)
 use omp_lib
 use parameters
-! use fftw_mod
 use spectral_mod
 use outputs
 implicit none
@@ -510,6 +562,9 @@ end do
 Akx = kill*Akx ! Dealiasing
 Aky = kill*Aky ! Dealiasing
 
+call incompressible_projection(Akx,Aky)
+! call compressible_projection(Akx,Aky)
+
 call energy(Akx,Aky,E)
 Akx = famp*Akx/sqrt(E)
 Aky = famp*Aky/sqrt(E)
@@ -517,10 +572,11 @@ Aky = famp*Aky/sqrt(E)
 RETURN
 END SUBROUTINE RandomF
 
+!*****************************************************************
+
 SUBROUTINE GaussianF(Akx,Aky)
 use omp_lib
 use parameters
-! use fftw_mod
 use spectral_mod
 use outputs
 implicit none
@@ -619,3 +675,79 @@ Aky = famp*Aky/sqrt(E)
 
 RETURN
 END SUBROUTINE PoloidalRandomF
+
+!*****************************************************************
+
+SUBROUTINE RandomF_Ak(fukx,fuky,fbkx,fbky)
+use omp_lib
+use parameters
+use spectral_mod
+use outputs
+implicit none
+double complex, intent(inout) :: fukx(Nh,N), fuky(Nh,N), fbkx(Nh,N), fbky(Nh,N)
+double precision phase, kmn, kmx, E
+integer i, j
+
+kmn = dk**2 ! k=1
+kmx = (kinj*dk)**2
+fukx=0.
+fuky=0.
+fbkx=0.
+fbky=0.
+
+!$omp parallel do private(i,j,phase)
+do i = 1, N
+    if ((kd(1,i).le.kmx).and.(kd(1,i).ge.kmn)) then
+        call random_number(phase)
+        phase = 2*pi*phase
+        fukx(1,i) = 0.  ! Because ky=0
+        call random_number(phase)
+        phase = 2*pi*phase
+        fuky(1,i) = -(cos(phase) + imag*sin(phase)) / sqrt(kd(1,i))
+        call random_number(phase)
+        phase = 2*pi*phase
+        fbkx(1,i) = -ky(1)/sqrt(kd(1,i))*(cos(phase) + imag*sin(phase)) / sqrt(kd(1,i)) 
+        call random_number(phase)
+        phase = 2*pi*phase
+        fbky(1,i) = kx(i)/sqrt(kd(1,i))*(cos(phase) + imag*sin(phase)) / sqrt(kd(1,i))
+    endif
+    do j = 2, Nh
+        if ((kd(j,i).le.kmx).and.(kd(j,i).ge.kmn)) then
+            call random_number(phase)
+            phase = 2*pi*phase
+            fukx(j,i) = 2*kx(i)/ky(j)*(cos(phase) + imag*sin(phase)) / sqrt(kd(j,i))
+            call random_number(phase)
+            phase = 2*pi*phase
+            fuky(j,i) = -2*(cos(phase) + imag*sin(phase)) / sqrt(kd(j,i))
+            call random_number(phase)
+            phase = 2*pi*phase
+            fbkx(j,i) = -2*ky(j)/sqrt(kd(j,i))*(cos(phase) + imag*sin(phase)) / sqrt(kd(j,i)) 
+            call random_number(phase)
+            phase = 2*pi*phase
+            fbky(j,i) = 2*kx(i)/sqrt(kd(j,i))*(cos(phase) + imag*sin(phase)) / sqrt(kd(j,i))
+        endif
+    end do
+end do
+
+fukx(1,1) = 0.0
+fuky(1,1) = 0.0
+fbkx(1,1) = 0.0
+fbky(1,1) = 0.0
+
+fukx = kill*fukx ! Dealiasing
+fuky = kill*fuky ! Dealiasing
+fbkx = kill*fbkx ! Dealiasing
+fbky = kill*fbky ! Dealiasing
+
+call incompressible_projection(fukx,fuky)
+call incompressible_projection(fbkx,fbky)
+
+call energy(fukx,fuky,E)
+fukx = famp*fukx/sqrt(E)
+fuky = famp*fuky/sqrt(E)
+call energy(fbkx,fbky,E)
+fbkx = famp*fbkx/sqrt(E)
+fbky = famp*fbky/sqrt(E)
+
+RETURN
+END SUBROUTINE RandomF_Ak

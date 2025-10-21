@@ -6,8 +6,10 @@ import sys
 path = "./"
 name = 'divb' # 'rho' or 'jz' or 'wz' or 'divu' or 'divb'
 ista = 100
-iend = 109
+iend = 199
 iskip = 1
+gamma = 1.4
+cs = 1
 P = np.loadtxt('out_parameter')
 N = int(P[6]) # N
 L = 2*np.pi
@@ -18,11 +20,9 @@ ky,kx = np.meshgrid(k,k)
 cmap = plt.cm.coolwarm
 
 if len(sys.argv)>1:
-    name = sys.argv[1]
+    iend = int(sys.argv[1])
 if len(sys.argv)>2:
-    iend = int(sys.argv[2])
-if len(sys.argv)>3:
-    iskip = int(sys.argv[3])
+    iskip = int(sys.argv[2])
 
 def load_fields(path, name, time, N):
     if name=="wz":
@@ -58,47 +58,34 @@ def derivey(field):
     out = np.real(np.fft.ifft(dfk, axis=1))
     return out
 
-def run_animation():
-    anim_running = True
-
-    # Function to allow pause/play with click
-    def onClick(event):
-        nonlocal anim_running
-        if anim_running:
-            anim.event_source.stop()
-            anim_running = False
-        else:
-            anim.event_source.start()
-            anim_running = True
-
-    def animFunc(frame):
-        field = load_fields(path, name, frame, N)
-        im.set_array(field)
-        ax.set_title(frame)
-        return im,
-
-    fig.canvas.mpl_connect('button_press_event', onClick)
-
-    anim = animation.FuncAnimation(fig, animFunc, interval=100, frames=range(ista,iend+1,iskip),
-            blit=False, repeat_delay=1000, repeat=True)
-
 nfiles = (iend-ista)//iskip + 1
 
-fig = plt.figure(1)
-ax = plt.axes(xlim=(0, N), ylim=(0, N))
-field = load_fields(path, name, ista+(iend-ista)//2, N)
-vmin = np.min(field) * 1.2
-vmax = -vmin
-im = plt.imshow(field, animated=False, vmin=vmin, vmax=vmax, cmap=cmap)
-plt.title(name)
-plt.colorbar()
+ekin = np.zeros(nfiles) 
+emag = np.zeros(nfiles) 
+eint = np.zeros(nfiles)
 
-run_animation()
+for i in range(ista,iend+1,iskip):
+    ux = load_fields(path, 'ux', i, N)
+    uy = load_fields(path, 'uy', i, N)
+    ekin[i-ista] = 0.5*np.mean(ux**2 + uy**2)
+    bx = load_fields(path, 'bx', i, N)
+    print(bx)
+    by = load_fields(path, 'by', i, N)
+    emag[i-ista] = 0.5*np.mean(bx**2 + by**2)
+    rho = load_fields(path, 'rho', i, N)
+    eint[i-ista] = cs**2/(gamma*(gamma-1))*np.mean((1+rho)**gamma - 1)
 
-#ani = animation.FuncAnimation(fig, run_animation, interval=50, blit=True,
-#                                repeat_delay=1000,repeat=True)
+fig, ax = plt.subplots()
 
-#ani.save('dipolar_supersolid.gif', writer='imagemagick')
+t = np.arange(0, nfiles, 1)
+etot = ekin + emag + eint
+print(len(t))
+print(len(ekin))
+ax.plot(t, ekin, label='E_kin')
+ax.plot(t, emag, label='E_mag')
+ax.plot(t, eint, label='E_int')
+ax.plot(t, etot/3, label='E_tot')
 
-plt.draw()
+ax.legend()
+
 plt.show()

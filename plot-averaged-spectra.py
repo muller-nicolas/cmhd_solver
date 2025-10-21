@@ -69,19 +69,19 @@ ax[1].axvline(kinj, color='k', linestyle='--')
 ksta = int(kinj) - 0
 kend = kmax
 x = k[ksta:kmax]
-idx_SA = 7
-ax[0].plot(x, (x/x[0])**(-2.)*Su[ksta]/2, color='k', ls='--',linewidth=1., label=r'$k^{-2}$')
-ax[0].plot(x, (x/x[0])**(-3/2)*Su[ksta]/2, color='r', ls='--',linewidth=1., label=r'$k^{-3/2}$')
-ax[0].plot(x, (x/x[0])**(-5/3)*Su[ksta]/2, color='gray', ls='--',linewidth=1., label=r'$k^{-5/3}$')
+idx_SA = 6
+ax[0].plot(x, (x/x[0])**(-2.)*Sb[ksta]*2, color='k', ls='--',linewidth=1., label=r'$k^{-2}$')
+ax[0].plot(x, (x/x[0])**(-3/2)*Sb[ksta]*2, color='r', ls='--',linewidth=1., label=r'$k^{-3/2}$')
+ax[0].plot(x, (x/x[0])**(-5/3)*Sb[ksta]*2, color='gray', ls='--',linewidth=1., label=r'$k^{-5/3}$')
 ax[0].plot(x, (x/x[1])**(-3.)*Sk[ksta+1], color='darkorange', ls='-.',linewidth=1., label=r'$k^{-3}$')
 
-ax[1].plot(x, (x/x[idx_SA])**(-2.)*SE[ksta+idx_SA]/2, color='k', ls='--',linewidth=1., label=r'$k^{-2}$')
-ax[1].plot(x, (x/x[idx_SA])**(-3/2)*SE[ksta+idx_SA]/2, color='r', ls='--',linewidth=1., label=r'$k^{-3/2}$')
-ax[1].plot(x, (x/x[idx_SA])**(-5/3)*SE[ksta+idx_SA]/2, color='gray', ls='--',linewidth=1., label=r'$k^{-5/3}$')
+ax[1].plot(x, (x/x[idx_SA])**(-2.)*SE[ksta+idx_SA], color='k', ls='--',linewidth=1., label=r'$k^{-2}$')
+ax[1].plot(x, (x/x[idx_SA])**(-3/2)*SE[ksta+idx_SA], color='r', ls='--',linewidth=1., label=r'$k^{-3/2}$')
+ax[1].plot(x, (x/x[idx_SA])**(-5/3)*SE[ksta+idx_SA], color='gray', ls='--',linewidth=1., label=r'$k^{-5/3}$')
 
-ax[1].plot(x, (x/x[idx_SA])**(-2.)*SH[ksta+idx_SA], color='k', ls='--',linewidth=1., label=r'$k^{-2}$')
-ax[1].plot(x, (x/x[idx_SA])**(-3/2)*SH[ksta+idx_SA], color='r', ls='--',linewidth=1., label=r'$k^{-3/2}$')
-ax[1].plot(x, (x/x[idx_SA])**(-5/3)*SH[ksta+idx_SA], color='gray', ls='--',linewidth=1., label=r'$k^{-5/3}$')
+ax[1].plot(x, (x/x[idx_SA])**(-2.)*SH[ksta+idx_SA], color='k', ls='--',linewidth=1.)#, label=r'$k^{-2}$')
+ax[1].plot(x, (x/x[idx_SA])**(-3/2)*SH[ksta+idx_SA], color='r', ls='--',linewidth=1.)#, label=r'$k^{-3/2}$')
+ax[1].plot(x, (x/x[idx_SA])**(-5/3)*SH[ksta+idx_SA], color='gray', ls='--',linewidth=1.)#, label=r'$k^{-5/3}$')
 
 ax[0].legend(ncol=1)
 ax[1].legend(ncol=1)

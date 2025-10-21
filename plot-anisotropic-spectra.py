@@ -67,7 +67,7 @@ ax[0].plot(x, (x/x[0])**(-2.)*Sbpara[ksta], color='r', ls='--',linewidth=1., lab
 
 ax[1].plot(x, (x/x[2])**(-5/3)*Sbperp[ksta+2], color='k', ls='--',linewidth=1., label=r'$k^{-5/3}$')
 ax[1].plot(x, (x/x[2])**(-3/2)*Sbperp[ksta+2], color='r', ls='--',linewidth=1., label=r'$k^{-3/2}$')
-ax[1].plot(x, (x/x[2])**(-7/3)*Sbperp[ksta+2], color='b', ls='--',linewidth=1., label=r'$k^{-7/3}$')
+# ax[1].plot(x, (x/x[2])**(-7/3)*Sbperp[ksta+2], color='b', ls='--',linewidth=1., label=r'$k^{-7/3}$')
 # ax[1].plot(x, (x/x[2])**(-2)*Sbperp[ksta+2], color='violet', ls='--',linewidth=1., label=r'$k^{-2}$')
 
 ax[0].legend(ncol=1)

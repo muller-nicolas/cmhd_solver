@@ -24,8 +24,12 @@ allocate(kx(N), ky(Nh))
 ky=(/(dfloat(i-1)*dk,i=1,Nh,1)/)
 kx(1:N/2)=(/(dfloat(i-1)*dk,i=1,N/2,1)/)
 kx(N/2+1:N)=(/(dfloat(i-1-N)*dk,i=N/2+1,N,1)/)
+
+!$omp parallel do private(i, j) 
 do i = 1, N
-kd(:,i) = kx(i)*kx(i) + ky(:)*ky(:)
+    do j=1,Nh
+        kd(j,i) = kx(i)*kx(i) + ky(j)*ky(j)
+    enddo
 end do
 
 kmax = real(N)/3.*dk
@@ -148,6 +152,7 @@ SUBROUTINE spectrumrho1D(rhok,spec1d)
 ! Computes the 1D spectrum of the 2D field rhok.
 double precision :: spec1d(Nh) 
 double complex, intent(in) :: rhok(Nh,N)
+double precision :: norm
 integer i, j, k 
 
 spec1d = 0.
@@ -168,7 +173,8 @@ do i = 1, N
         spec1d(k) = spec1d(k) + abs(rhok(Nh,i))**2
     end if
 end do
-spec1d = spec1d/real(N,kind=8)**4
+norm = 1./real(N,kind=8)**4
+spec1d = spec1d*norm
 
 RETURN
 END SUBROUTINE spectrumrho1D
@@ -178,6 +184,7 @@ SUBROUTINE spectrumAk(Akx,Aky,specE,specH)
 ! Computes the 1D spectrum of the 2D fields Akx and Aky. Works for velocity and magnetic fields.
 double complex, intent(in) :: Akx(Nh,N), Aky(Nh,N)
 double precision, intent(out) :: specE(Nh), specH(Nh)
+double precision :: norm
 integer i, j, k 
 
 specE = 0.
@@ -203,8 +210,9 @@ do i = 1, N
     end if
 end do
 specH(1) = 0.
-specE = specE/real(N,kind=8)**4
-specH = specH/real(N,kind=8)**4
+norm = 1./real(N,kind=8)**4
+specE = specE*norm
+specH = specH*norm
 
 RETURN
 END SUBROUTINE spectrumAk
@@ -214,6 +222,7 @@ SUBROUTINE anisotropic_spectra(Akx,Aky,spec_para,spec_perp)
 ! Computes the 1D spectrum of the 2D fields Akx and Aky. Works for velocity and magnetic fields.
 double precision :: spec_perp(Nh), spec_para(Nh)
 double complex, intent(in) :: Akx(Nh,N), Aky(Nh,N)
+double precision :: norm
 integer i, j, k 
 
 spec_para = 0.
@@ -237,8 +246,10 @@ do i = 1, Nh
     k = int(ky(j)/dk+0.5) + 1
     spec_perp(k) = spec_perp(k) + (abs(Akx(j,i))**2 + abs(Aky(j,i))**2)
 end do
-spec_para = spec_para/real(N,kind=8)**4
-spec_perp = spec_perp/real(N,kind=8)**4
+
+norm = 1./real(N,kind=8)**4
+spec_para = spec_para*norm
+spec_perp = spec_perp*norm
 
 RETURN
 END SUBROUTINE anisotropic_spectra
@@ -251,6 +262,7 @@ double complex :: tmpk1, tmpk2
 double precision :: eps = 1.d-15
 integer :: i,j
 
+!$omp parallel do private(i,j,tmpk1,tmpk2) 
 do i=1,N
     do j=1,Nh
         tmpk1 = ky(j)/kx(i)*ukx(j,i) - uky(j,i)
@@ -283,6 +295,56 @@ RETURN
 END SUBROUTINE Ek2D_and_Hk2D
 
 !*****************************************************************
+
+SUBROUTINE incompressible_projection(Akx,Aky)
+double complex, intent(inout) :: Akx(Nh,N), Aky(Nh,N)
+double complex :: fpar
+integer i, j
+
+! Incompressible projection
+!$omp parallel do private(i,j,fpar)
+do i=1,N
+    do j=1,Nh
+        fpar = (kx(i)*Akx(j,i) + ky(j)*Aky(j,i))/kd(i,j)
+        Akx(j,i) = Akx(j,i) - fpar*kx(i)
+        Aky(j,i) = Aky(j,i) - fpar*ky(j)
+    enddo
+enddo
+Akx(1,1) = 0.
+Aky(1,1) = 0.
+
+END SUBROUTINE incompressible_projection
+
+!*****************************************************************
+
+SUBROUTINE compressible_projection(Akx,Aky)
+double complex, intent(inout) :: Akx(Nh,N), Aky(Nh,N)
+double complex :: tmpk1(Nh,N), tmpk2(Nh,N)
+! double complex :: fpar
+! integer i, j
+
+tmpk1 = Akx
+tmpk2 = Aky
+call incompressible_projection(tmpk1, tmpk2)
+Akx = Akx - tmpk1
+Aky = Aky - tmpk2
+
+! Compressible projection
+!!$omp parallel do private(i,j,fpar)
+! do i=1,N
+!     do j=1,Nh
+!         fpar = (kx(i)*Akx(j,i) + ky(j)*Aky(j,i))/kd(i,j)
+!         Akx(j,i) = fpar*kx(i)
+!         Aky(j,i) = fpar*ky(j)
+!     enddo
+! enddo
+! Akx(1,1) = 0.
+! Aky(1,1) = 0.
+
+END SUBROUTINE compressible_projection
+
+!*****************************************************************
+
 SUBROUTINE WriteSpatioTemporalSpectrum(rhok, ukx, uky, bkx, bky, time)
 double complex, intent(in) :: rhok(Nh,N), ukx(Nh,N), uky(Nh,N), bkx(Nh,N), bky(Nh,N)
 double complex :: Ak1(Nh,N), Ak2(Nh,N)
@@ -292,18 +354,10 @@ integer :: uSTS=80
 character (len=11) :: sts_time='STS_time'
 character (len=11) :: sts_uxkx='STS_uxkx'
 character (len=11) :: sts_uxky='STS_uxky'
-character (len=11) :: sts_uykx='STS_uykx'
-character (len=11) :: sts_uyky='STS_uyky'
 character (len=11) :: sts_bxkx='STS_bxkx'
 character (len=11) :: sts_bxky='STS_bxky'
-character (len=11) :: sts_bykx='STS_bykx'
-character (len=11) :: sts_byky='STS_byky'
-character (len=12) :: sts_rhokx='STS_rhokx'
-character (len=12) :: sts_rhoky='STS_rhoky'
 character (len=12) :: sts_Ak1kx='STS_Ak1kx'
 character (len=12) :: sts_Ak1ky='STS_Ak1ky'
-character (len=12) :: sts_Ak2kx='STS_Ak2kx'
-character (len=12) :: sts_Ak2ky='STS_Ak2ky'
 
 OPEN(uSTS,file=sts_time,position='append',form='formatted')
 write(uSTS,*) time
@@ -315,47 +369,22 @@ close(uSTS)
 OPEN (uSTS, file=sts_uxky, access='stream', position='append',form='unformatted')
 write(uSTS) ukx(:,1) ! kx=0
 close(uSTS)
-OPEN (uSTS, file=sts_uykx, access='stream', position='append',form='unformatted')
-write(uSTS) uky(1,:) !ky=0
-close(uSTS)
-OPEN (uSTS, file=sts_uyky, access='stream', position='append',form='unformatted')
-write(uSTS) uky(:,1) !kx=0
-close(uSTS)
 OPEN (uSTS, file=sts_bxkx, access='stream', position='append',form='unformatted')
 write(uSTS) bkx(1,:) ! ky=0
 close(uSTS)
 OPEN (uSTS, file=sts_bxky, access='stream', position='append',form='unformatted')
 write(uSTS) bkx(:,1) ! kx=0
 close(uSTS)
-OPEN (uSTS, file=sts_bykx, access='stream', position='append',form='unformatted')
-write(uSTS) bky(1,:) !ky=0
-close(uSTS)
-OPEN (uSTS, file=sts_byky, access='stream', position='append',form='unformatted')
-write(uSTS) bky(:,1) !kx=0
-close(uSTS)
-OPEN (uSTS, file=sts_rhokx, access='stream', position='append',form='unformatted')
-write(uSTS) rhok(1,:) !ky=0
-close(uSTS)
-OPEN (uSTS, file=sts_rhoky, access='stream', position='append',form='unformatted')
-write(uSTS) rhok(:,1) !kx=0
-close(uSTS)
 
 ! Canonical variables
 call canonical_variables(ukx,uky,bkx,bky,Ak1,Ak2)
 ! Ak+
 OPEN (uSTS, file=sts_Ak1kx, access='stream', position='append',form='unformatted')
-write(uSTS) Ak1(2,:) !ky=0
+write(uSTS) Ak1(6,:) !ky=0
 close(uSTS)
 OPEN (uSTS, file=sts_Ak1ky, access='stream', position='append',form='unformatted')
-write(uSTS) Ak1(:,2) !kx=0
+write(uSTS) Ak1(:,6) !kx=0
 close(uSTS)
-! Ak-
-OPEN (uSTS, file=sts_Ak2kx, access='stream', position='append',form='unformatted')
-write(uSTS) Ak2(2,:) !ky=0
-close(uSTS)
-OPEN (uSTS, file=sts_Ak2ky, access='stream', position='append',form='unformatted')
-write(uSTS) Ak2(:,2) !kx=0
-close(uSTS) 
 
 END SUBROUTINE WriteSpatioTemporalSpectrum
 

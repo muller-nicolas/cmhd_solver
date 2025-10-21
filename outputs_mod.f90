@@ -83,7 +83,6 @@ Erho = 0.
 divu = 0.
 divb = 0.
 
-! TODO: Erho is not properly computed
 !$omp parallel do private(i,j) reduction(+:EU,EB)
 do i = 1, N
     EU = EU + 0.5*(abs(ukx(1,i))**2 + abs(uky(1,i))**2)

@@ -42,7 +42,7 @@ plt.title('Energies')
 plt.plot(x,Erho,label=r'<$\rho u^2/2$>')
 plt.plot(x,EB,label='<$b^2/2$>')
 plt.plot(x,Eint,label=r'<$\rho e$>')
-plt.plot(x,Etot/3,label='$E^{tot}/2$')
+plt.plot(x,Etot/3,label='$E^{tot}/3$')
 plt.xlabel('$t$')
 plt.grid(True,linestyle=':', linewidth=1)
 plt.legend()
@@ -56,7 +56,7 @@ plt.grid(True,linestyle=':', linewidth=1)
 plt.legend()
 
 # Etot = Erho + EB
-#print(Etot[-1]/Etot[0])
+print(Etot[-1]/Etot[0])
 
 # plt.savefig("Figure-Time.png",dpi=600)
 plt.show()

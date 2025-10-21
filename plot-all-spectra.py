@@ -20,11 +20,15 @@ P = np.loadtxt('out_parameter')
 kinj = P[3]
 N = int(P[6]) # kmax
 Nh = N//2+1
-kmax = N//2
+kmax = N//3
 k = np.arange(0, kmax)
 
 nfiles = len(filenames_EU)
 colors = [ plt.cm.viridis(i/nfiles) for i in range(nfiles) ]
+
+ekin = np.zeros(nfiles) 
+emag = np.zeros(nfiles) 
+eint = np.zeros(nfiles)
 
 for i in range(nfiles):
     filename_u = filenames_EU[i]
@@ -34,6 +38,10 @@ for i in range(nfiles):
     Su = np.loadtxt(filename_u, dtype=np.float64)  # load data from file
     Sb = np.loadtxt(filename_b, dtype=np.float64)  # load data from file
     Sr = np.loadtxt(filename_r, dtype=np.float64)  # load data from file
+
+    ekin[i] = np.sum(Su[1:])
+    emag[i] = np.sum(Sb[1:])
+    eint[i] = np.sum(Sr[1:])
 
     ax[0].loglog(k[1:kmax],Su[1:kmax],label=f't{i+1}', color=colors[i])
     ax[1].loglog(k[1:kmax],Sb[1:kmax],label=f't{i+1}', color=colors[i])
@@ -56,7 +64,7 @@ ax[2].axvline(kinj, color='k', linestyle='--')
 ksta = int(kinj) - 1
 kend = kmax
 x = k[ksta:kmax]
-ax[0].plot(x, (x/x[0])**(-2.)*Su[ksta], color='k', ls='--',linewidth=1.)
+ax[0].plot(x, (x/x[0])**(-2.)*Su[ksta], color='k', ls='--',linewidth=1., label=r'$k^{-2}$')
 ax[1].plot(x, (x/x[0])**(-2.)*Sb[ksta], color='k', ls='--',linewidth=1.)
 ax[2].plot(x[2:], (x[2:]/x[2])**(-3.)*Sr[ksta+2], color='k', ls='--',linewidth=1.)
 # ax[0].plot(x, (x/x[0])**(-2.)*Su[ksta], color='k', ls='--',linewidth=1.)
@@ -68,6 +76,14 @@ ax[0].legend(ncol=2)
 print(Su[0])
 print(Sb[0])
 print(Sr[0])
+
+plt.figure()
+plt.plot(ekin, label='E_kin')
+plt.plot(emag, label='E_mag')
+# plt.plot(eint, label='E_int')
+etot = ekin + emag #+ eint
+plt.plot(etot/2, label='E_tot')
+plt.legend()
 
 # plt.savefig("Figure-spectrum-Eu.png")
 plt.show()
