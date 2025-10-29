@@ -6,7 +6,7 @@ import sys
 path = "./"
 name = 'divb' # 'rho' or 'jz' or 'wz' or 'divu' or 'divb'
 ista = 100
-iend = 199
+iend = 149
 iskip = 1
 gamma = 1.4
 cs = 1
@@ -58,21 +58,81 @@ def derivey(field):
     out = np.real(np.fft.ifft(dfk, axis=1))
     return out
 
+import numpy as np
+
+def energy_decomposition(ux, uy):
+    """
+    Compute incompressible and compressible kinetic energies from a 2D velocity field.
+    
+    Parameters
+    ----------
+    ux, uy : 2D numpy arrays
+        Velocity components (must have the same shape).
+        
+    Returns
+    -------
+    Ei : float
+        Incompressible kinetic energy.
+    Ec : float
+        Compressible kinetic energy.
+    """
+    assert ux.shape == uy.shape, "ux and uy must have the same shape"
+    
+    nx, ny = ux.shape
+
+    # Fourier transforms
+    ux_hat = np.fft.fft2(ux)
+    uy_hat = np.fft.fft2(uy)
+    
+    # Wavenumber grids
+    kx = np.fft.fftfreq(nx).reshape(-1, 1)
+    ky = np.fft.fftfreq(ny).reshape(1, -1)
+    
+    kx, ky = np.meshgrid(ky.flatten(), kx.flatten())  # reorder to match array layout
+    ksq = kx**2 + ky**2
+    ksq[ksq == 0] = 1.0  # avoid division by zero
+    
+    # Dot product k·u_hat
+    k_dot_u = kx * ux_hat + ky * uy_hat
+    
+    # Compressible (curl-free) projection
+    ux_c_hat = (k_dot_u * kx) / ksq
+    uy_c_hat = (k_dot_u * ky) / ksq
+    
+    # Incompressible (div-free) projection
+    ux_i_hat = ux_hat - ux_c_hat
+    uy_i_hat = uy_hat - uy_c_hat
+    
+    # Back to real space
+    ux_c = np.fft.ifft2(ux_c_hat).real
+    uy_c = np.fft.ifft2(uy_c_hat).real
+    ux_i = np.fft.ifft2(ux_i_hat).real
+    uy_i = np.fft.ifft2(uy_i_hat).real
+    
+    # Energies
+    Ec = 0.5 * np.mean(ux_c**2 + uy_c**2)
+    Ei = 0.5 * np.mean(ux_i**2 + uy_i**2)
+    
+    return Ei, Ec
+
+
 nfiles = (iend-ista)//iskip + 1
 
 ekin = np.zeros(nfiles) 
 emag = np.zeros(nfiles) 
 eint = np.zeros(nfiles)
 div = np.zeros(nfiles)
+Ei = np.zeros(nfiles)
+Ec = np.zeros(nfiles)
 
 for i in range(ista,iend+1,iskip):
     ux = load_fields(path, 'ux', i, N)
     uy = load_fields(path, 'uy', i, N)
     divu = derivex(ux) + derivey(uy)
+    Ei[i-ista], Ec[i-ista] = energy_decomposition(ux, uy)
     div[i-ista] = np.mean(divu**2)
     ekin[i-ista] = 0.5*np.mean(ux**2 + uy**2)
     bx = load_fields(path, 'bx', i, N)
-    print(bx)
     by = load_fields(path, 'by', i, N)
     emag[i-ista] = 0.5*np.mean(bx**2 + by**2)
     rho = load_fields(path, 'rho', i, N)
@@ -82,9 +142,9 @@ fig, ax = plt.subplots()
 
 t = np.arange(0, nfiles, 1)
 etot = ekin + emag + eint
-print(len(t))
-print(len(ekin))
 ax.plot(t, ekin, label='E_kin')
+ax.plot(t, Ei, label='E_inc')
+ax.plot(t, Ec, label='E_com')
 ax.plot(t, emag, label='E_mag')
 ax.plot(t, eint, label='E_int')
 ax.plot(t, etot/3, label='E_tot')

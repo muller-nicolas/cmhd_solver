@@ -8,12 +8,10 @@ vmax = -15
 P = np.loadtxt('out_parameter')
 N = int(P[6]) # N
 kmax = N//3
-cs = 1.0
+cs = 0.3
 b0 = 1.0
 beta = cs**2 / b0**2
-kpar = 5
-kper = 5 
-disp = 0e-3 
+disp = (1.e-3 ) / 5
 
 cmap = plt.cm.Blues
 
@@ -21,6 +19,8 @@ filenames_u = ['STS_uxkx', 'STS_uxky'] #, 'STS_uykx', 'STS_uyky']
 filenames_b = ['STS_bxkx', 'STS_bxky'] #, 'STS_bykx', 'STS_byky']
 filenames_Ak= ['STS_Ak1kx', 'STS_Ak1ky'] #, 'STS_Ak2kx', 'STS_Ak2ky']
 filenames = filenames_Ak
+kpar = 5
+kper = 5 
 
 def spatiotemporal(filename, ti, tf):
     print(filename)
@@ -73,9 +73,9 @@ for i,filename in enumerate(filenames):
 
     plot = ax[i].imshow(np.log(Omega[OM-sz:OM+sz+1,:]), extent=(k[0],k[-1],w[OM2-sz],w[OM2+sz]), aspect='auto', cmap=cmap, vmin=vmin, vmax=vmax)
 
-    ax[i].set_title(title + " k=5")
     ax[i].set_ylabel(r'$\omega$')
 
+    ax[i].set_title(title + f" k={kpar}")
 ax[0].set_xlabel(r'$k_\parallel$')
 ax[1].set_xlabel(r'$k_\perp$')
 

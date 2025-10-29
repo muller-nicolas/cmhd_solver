@@ -15,6 +15,8 @@ if len(sys.argv)>2:
 filenames_EU = [f'out_spectrumEU-1D-{i:03d}' for i in range(ista,iend+1,iskip)]
 filenames_EB = [f'out_spectrumEB-1D-{i:03d}' for i in range(ista,iend+1,iskip)]
 filenames_rho = [f'out_spectrumrho-1D-{i:03d}' for i in range(ista,iend+1,iskip)]
+filenames_EUinc = [f'out_spectrumEUinc-1D-{i:03d}' for i in range(ista,iend+1,iskip)]
+filenames_EUcom = [f'out_spectrumEUcom-1D-{i:03d}' for i in range(ista,iend+1,iskip)]
 
 P = np.loadtxt('out_parameter')
 kinj = P[3]
@@ -30,22 +32,23 @@ ekin = np.zeros(nfiles)
 emag = np.zeros(nfiles) 
 eint = np.zeros(nfiles)
 
-for i in range(nfiles):
-    filename_u = filenames_EU[i]
-    filename_b = filenames_EB[i]
-    filename_r = filenames_rho[i]
+def load_and_plot_spectrum(ax, filenames, ls='-'):
+    nfiles = len(filenames)
+    colors = [ plt.cm.viridis(i/nfiles) for i in range(nfiles) ]
+    energy = np.zeros(nfiles)
+    for i in range(nfiles):
+        filename = filenames[i]
+        spec = np.loadtxt(filename, dtype=np.float64)  # load data from file
+        energy[i] = np.sum(spec[1:])
+        ax.loglog(k[1:kmax],spec[1:kmax], label=f't{i+1}', color=colors[i], ls=ls)
 
-    Su = np.loadtxt(filename_u, dtype=np.float64)  # load data from file
-    Sb = np.loadtxt(filename_b, dtype=np.float64)  # load data from file
-    Sr = np.loadtxt(filename_r, dtype=np.float64)  # load data from file
+    return energy, spec
 
-    ekin[i] = np.sum(Su[1:])
-    emag[i] = np.sum(Sb[1:])
-    eint[i] = np.sum(Sr[1:])
-
-    ax[0].loglog(k[1:kmax],Su[1:kmax],label=f't{i+1}', color=colors[i])
-    ax[1].loglog(k[1:kmax],Sb[1:kmax],label=f't{i+1}', color=colors[i])
-    ax[2].loglog(k[1:kmax],Sr[1:kmax],label=f't{i+1}', color=colors[i])
+ekin, Su = load_and_plot_spectrum(ax[0], filenames_EU)
+emag, Sb = load_and_plot_spectrum(ax[1], filenames_EB)
+eint, Sr = load_and_plot_spectrum(ax[2], filenames_rho)
+einc, Suinc = load_and_plot_spectrum(ax[0], filenames_EUinc, ls='--')
+ecom, Sucom = load_and_plot_spectrum(ax[0], filenames_EUcom, ls=':')
 
 ax[0].set_xlabel(r'$k$')
 ax[1].set_xlabel(r'$k$')
@@ -79,6 +82,8 @@ print(Sr[0])
 
 plt.figure()
 plt.plot(ekin, label='E_kin')
+plt.plot(einc, label='E_inc')
+plt.plot(ecom, label='E_com')
 plt.plot(emag, label='E_mag')
 # plt.plot(eint, label='E_int')
 etot = ekin + emag #+ eint

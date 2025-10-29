@@ -8,6 +8,8 @@ include "fftw3.f"
 public
 
 integer (kind=8) :: plan_for, plan_back
+integer, parameter :: Nh = N/2+1  ! Number of wavenumbers
+integer, parameter :: Na = int(N/3)   ! Dealiasing cutoff
 
 save
 contains

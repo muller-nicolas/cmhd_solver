@@ -317,6 +317,28 @@ END SUBROUTINE incompressible_projection
 
 !*****************************************************************
 
+SUBROUTINE incompressible_projection2(Akx,Aky,Bkx,Bky)
+double complex, intent(in) :: Akx(Nh,N), Aky(Nh,N)
+double complex, intent(out) :: Bkx(Nh,N), Bky(Nh,N)
+double complex :: fpar
+integer i, j
+
+! Incompressible projection
+!$omp parallel do private(i,j,fpar)
+do i=1,N
+    do j=1,Nh
+        fpar = (kx(i)*Akx(j,i) + ky(j)*Aky(j,i))/kd(i,j)
+        Bkx(j,i) = Akx(j,i) - fpar*kx(i)
+        Bky(j,i) = Aky(j,i) - fpar*ky(j)
+    enddo
+enddo
+Bkx(1,1) = 0.
+Bky(1,1) = 0.
+
+END SUBROUTINE incompressible_projection2
+
+!*****************************************************************
+
 SUBROUTINE compressible_projection(Akx,Aky)
 double complex, intent(inout) :: Akx(Nh,N), Aky(Nh,N)
 double complex :: tmpk1(Nh,N), tmpk2(Nh,N)

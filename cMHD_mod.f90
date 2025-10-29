@@ -7,6 +7,10 @@ use adaptive_mod
 use spectral_mod
 implicit none
 
+! TODO: Rewrite the gradient of rho in RHS2 and RHS3 to reduce operations
+! TODO: Define well second viscosity
+! TODO: Add 1/rho in the dissipation term in RHS2 and RHS3
+
 ! real(c_double), allocatable, target :: buffer1(:,:), buffer2(:,:), buffer3(:,:)
 ! real(c_double), pointer :: tmp1(:,:), tmp2(:,:), tmp3(:,:)               ! (N,N)
 ! complex(c_double_complex), pointer :: tmpk1(:,:), tmpk2(:,:), tmpk3(:,:) ! (Nh,N)
@@ -21,8 +25,8 @@ contains
 SUBROUTINE RHS(rhok,ukx,uky,bkx,bky,nonlinrhok,nonlinukx,nonlinuky,nonlinbkx,nonlinbky)
 double complex, dimension(Nh,N) :: rhok, ukx, uky, bkx, bky
 double complex, dimension(Nh,N) :: nonlinrhok, nonlinukx, nonlinuky, nonlinbkx, nonlinbky
-double complex :: dissip_nu, dissip_eta
-double precision :: kx3, ky3, k4, nu3
+double complex :: dissip_eta
+double precision :: kx3, ky3, k4
 integer :: i,j
 ! double precision, dimension(Nh,N) :: k4, k3
 
@@ -36,10 +40,10 @@ call RHS3(rhok,ukx,uky,bkx,bky,nonlinuky)
 call RHS4(ukx,uky,bkx,bky,nonlinbkx)
 call RHS5(ukx,uky,bkx,bky,nonlinbky)
 
-nu3 = nu/3.d0
+! nu3 = nu/3.d0
 ! dissipation + dealiasing
 ! Hyperviscosity (bilaplacian) + hypoviscosity + dispersion
-!$omp parallel do private(i,j,kx3,ky3,k4,dissip_nu,dissip_eta) 
+!$omp parallel do private(i,j,kx3,ky3,k4,dissip_eta) 
 do i = 1, N
     kx3 = kx(i)**3
     do j = 1, Nh
@@ -47,14 +51,16 @@ do i = 1, N
         ky3 = ky(j)**3
         ! dissip_nu = (k4*nu  + alpha + imag*disp*(kx3+ky3)) ! Hyperviscosity
         ! dissip_eta= (k4*eta + alpha - imag*disp*(kx3+ky3))
-        dissip_nu = (kd(j,i)*nu  + alpha + imag*disp*(kx3+ky3)) ! Viscosity
+        ! dissip_nu = (kd(j,i)*nu  + alpha + imag*disp*(kx3+ky3)) ! Viscosity
         dissip_eta= (kd(j,i)*eta + alpha - imag*disp*(kx3+ky3))
 
         nonlinrhok(j,i) = kill(j,i)*(nonlinrhok(j,i)) ! - dissip_nu*rhok(j,i))
+        nonlinukx (j,i) = kill(j,i)*(nonlinukx(j,i)) !- dissip_nu*ukx(j,i) - nu3 * kd(j,i)*kx(i)*(kx(i)*ukx(j,i) + ky(j)*uky(j,i)))
+        nonlinuky (j,i) = kill(j,i)*(nonlinuky(j,i)) !- dissip_nu*uky(j,i) - nu3 * kd(j,i)*ky(j)*(kx(i)*ukx(j,i) + ky(j)*uky(j,i)))
         ! nonlinukx (j,i) = kill(j,i)*(nonlinukx (j,i) - dissip_nu*ukx(j,i) - nu3 * kd(j,i)*kx(i)*(kx(i)*ukx(j,i) + ky(j)*uky(j,i)))
         ! nonlinuky (j,i) = kill(j,i)*(nonlinuky (j,i) - dissip_nu*uky(j,i) - nu3 * kd(j,i)*ky(j)*(kx(i)*ukx(j,i) + ky(j)*uky(j,i)))
-        nonlinukx (j,i) = kill(j,i)*(nonlinukx (j,i) - dissip_nu*ukx(j,i) - nu3 * kx(i)*(kx(i)*ukx(j,i) + ky(j)*uky(j,i)))
-        nonlinuky (j,i) = kill(j,i)*(nonlinuky (j,i) - dissip_nu*uky(j,i) - nu3 * ky(j)*(kx(i)*ukx(j,i) + ky(j)*uky(j,i)))
+        ! nonlinukx (j,i) = kill(j,i)*(nonlinukx (j,i) - dissip_nu*ukx(j,i) - nu3 * kx(i)*(kx(i)*ukx(j,i) + ky(j)*uky(j,i)))
+        ! nonlinuky (j,i) = kill(j,i)*(nonlinuky (j,i) - dissip_nu*uky(j,i) - nu3 * ky(j)*(kx(i)*ukx(j,i) + ky(j)*uky(j,i)))
         nonlinbkx (j,i) = kill(j,i)*(nonlinbkx (j,i) - dissip_eta*bkx(j,i))
         nonlinbky (j,i) = kill(j,i)*(nonlinbky (j,i) - dissip_eta*bky(j,i))
         
@@ -142,7 +148,8 @@ END SUBROUTINE RHS1
 SUBROUTINE RHS2(rhok,ukx,uky,bkx,bky,nonlinukx)
 double complex :: rhok(Nh,N), ukx(Nh,N), uky(Nh,N), bkx(Nh,N), bky(Nh,N)
 double complex :: nonlinukx(Nh,N)
-! integer :: i,j
+double complex :: nu2
+integer :: i,j
 ! uxt = -ux*uxdx - uy*uxdy - by*(curl(b))/(1+rho)
 
 ! No linear terms
@@ -172,7 +179,40 @@ call FFT_SP(tmpk2,tmp2)
 !         tmp3(j,i) = tmp3(j,i) - cspeed**2 * tmp2(j,i)*tmp1(j,i)**(gamma-1.d0) / (tmp1(j,i)+eps)
 !     end do
 ! end do
-tmp3 = tmp3 - cspeed**2 * tmp2*tmp1**(gamma-1.d0) / (tmp1+eps)
+tmp3 = tmp3 - cspeed**2 * tmp2*tmp1**(gamma-2.d0) 
+
+
+! Dissipation:
+! 1/rho nu \nabla^2 u_x + 1/rho nu/3 * \partial_x ( \nabla \cdot u )
+if (hyperviscosity) then
+    !$omp parallel do private(i,j)
+    do i=1,N
+        do j=1,Nh
+            tmpk2(j,i) = (nu*kd(j,i)*kd(j,i) + alpha + imag*disp*(kx(i)**3 + ky(j)**3)) * ukx(j,i)
+        enddo
+    enddo
+    ! tmpk2 = (nu*kd*kd + alpha + imag*disp*kd**(1.5)) * ukx
+else
+    !$omp parallel do private(i,j)
+    do i=1,N
+        do j=1,Nh
+            tmpk2(j,i) = (nu*kd(j,i) + alpha + imag*disp*(kx(i)**3 + ky(j)**3)) * ukx(j,i)
+        enddo
+    enddo
+    ! tmpk2 = tmpk2 + (nu*kd + alpha + imag*disp*kd**(1.5)) * ukx
+endif
+call FFT_SP(tmpk2,tmp2)
+tmp3 = tmp3 - tmp2/tmp1
+
+call divergence(ukx,uky,tmpk2)
+call derivex(tmpk2,tmpk2)
+nu2 = nu/3.d0 
+tmpk2 = nu2 * tmpk2
+if (hyperviscosity) then
+    tmpk2 = tmpk2 * kd
+endif
+call FFT_SP(tmpk2,tmp2)
+tmp3 = tmp3 - tmp2/tmp1
 
 tmpk1 = ukx
 call derivex(ukx,tmpk2)
@@ -200,6 +240,7 @@ call FFT_SP(tmpk2,tmp2)
 ! end do
 tmp3 = tmp3 - tmp1*tmp2 
 
+
 call FFT_PS(tmp3,tmpk3)
 nonlinukx = tmpk3
 
@@ -208,7 +249,8 @@ END SUBROUTINE RHS2
 SUBROUTINE RHS3(rhok,ukx,uky,bkx,bky,nonlinuky)
 double complex :: rhok(Nh,N), ukx(Nh,N), uky(Nh,N), bkx(Nh,N), bky(Nh,N)
 double complex :: nonlinuky(Nh,N)
-! integer :: i,j
+double complex :: nu2
+integer :: i,j
 ! uyt = - ux*uydx - uy*uydy + (bx+b0)*curl(b)/(1+rho) with b0=1
 
 ! Add linear terms
@@ -252,7 +294,40 @@ call FFT_SP(tmpk2,tmp2)
 !         tmp3(j,i) = tmp3(j,i) - cspeed**2 * tmp2(j,i)*tmp1(j,i)**(gamma-1.d0) / (tmp1(j,i)+eps)
 !     end do
 ! end do
-tmp3 = tmp3 - cspeed**2 * tmp2*tmp1**(gamma-1.d0) / (tmp1+eps)
+tmp3 = tmp3 - cspeed**2 * tmp2*tmp1**(gamma-2.d0) 
+
+! Dissipation:
+! 1/rho nu \nabla^2 u_x + 1/rho nu/3 * \partial_x ( \nabla \cdot u )
+if (hyperviscosity) then
+    !$omp parallel do private(i,j)
+    do i=1,N
+        do j=1,Nh
+            tmpk2(j,i) = (nu*kd(j,i)*kd(j,i) + alpha + imag*disp*(kx(i)**3 + ky(j)**3)) * uky(j,i)
+        enddo
+    enddo
+    ! tmpk2 = (nu*kd*kd + alpha + imag*disp*kd**(1.5)) * uky
+else
+    !$omp parallel do private(i,j)
+    do i=1,N
+        do j=1,Nh
+            tmpk2(j,i) = (nu*kd(j,i) + alpha + imag*disp*(kx(i)**3 + ky(j)**3)) * uky(j,i)
+        enddo
+    enddo
+    ! tmpk2 = tmpk2 + (nu*kd + alpha + imag*disp*kd**(1.5)) * uky
+endif
+
+call FFT_SP(tmpk2,tmp2)
+tmp3 = tmp3 - tmp2/tmp1
+
+call divergence(ukx,uky,tmpk2)
+call derivey(tmpk2,tmpk2)
+nu2 = nu/3.d0 
+tmpk2 = nu2 * tmpk2
+if (hyperviscosity) then
+    tmpk2 = tmpk2 * kd
+endif
+call FFT_SP(tmpk2,tmp2)
+tmp3 = tmp3 - tmp2/tmp1
 
 tmpk1 = ukx
 call derivex(uky,tmpk2)
@@ -279,6 +354,8 @@ call FFT_SP(tmpk2,tmp2)
 !     end do
 ! end do
 tmp3 = tmp3 - tmp1*tmp2 
+
+
 
 call FFT_PS(tmp3,tmpk3)
 

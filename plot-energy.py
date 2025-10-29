@@ -9,13 +9,15 @@ EU = np.loadtxt('out_EU')
 EB = np.loadtxt('out_EB')
 Erho = np.loadtxt('out_Erho')
 Eint = np.loadtxt('out_Eint')
+Einc = np.loadtxt('out_Ekinc')
+Ecom = np.loadtxt('out_Ekcom')
 divu = np.loadtxt('out_divu')
 divb = np.loadtxt('out_divb')
 time = np.loadtxt('out_time')
 
 Etot = Erho + EB + Eint
 # Etot = Erho + EB #+ Eint
-cs = 1.0
+cs = 0.3
 b0 = 1
 
 Nt = len(EU)
@@ -37,9 +39,11 @@ x = time
                           
 plt.subplot(211)
 plt.title('Energies')
-# plt.plot(x,EU,label='<$u^2/2$>')
+plt.plot(x,EU,label='<$u^2/2$>')
+plt.plot(x,Einc,label='<$u_{inc}^2/2$>')
+plt.plot(x,Ecom,label='<$u_{com}^2/2$>')
 # plt.plot(x,Urms,label='<$u^2/2$>')
-plt.plot(x,Erho,label=r'<$\rho u^2/2$>')
+# plt.plot(x,Erho,label=r'<$\rho u^2/2$>')
 plt.plot(x,EB,label='<$b^2/2$>')
 plt.plot(x,Eint,label=r'<$\rho e$>')
 plt.plot(x,Etot/3,label='$E^{tot}/3$')
@@ -56,7 +60,7 @@ plt.grid(True,linestyle=':', linewidth=1)
 plt.legend()
 
 # Etot = Erho + EB
-print(Etot[-1]/Etot[0])
+# print(Etot[-1]/Etot[0])
 
 # plt.savefig("Figure-Time.png",dpi=600)
 plt.show()

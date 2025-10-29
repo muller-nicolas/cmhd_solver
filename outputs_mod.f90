@@ -15,9 +15,9 @@ contains
 
 SUBROUTINE save_energy(rhok,ukx,uky,bkx,bky)
 double complex, intent(in) :: rhok(Nh,N), ukx(Nh,N), uky(Nh,N), bkx(Nh,N), bky(Nh,N)
-double precision :: EU, EB, Erho, Eint, divu, divb
+double precision :: EU, EB, Erho, Eint, divu, divb, Einc, Ecom
 
-call compute_energy(rhok,ukx,uky,bkx,bky,EU,EB,Erho,Eint,divu,divb)
+call compute_energy(rhok,ukx,uky,bkx,bky,EU,EB,Erho,Eint,divu,divb,Einc,Ecom)
 
 open(40, file = 'out_EU', position='append',form='formatted')
 open(41, file = 'out_EB', position='append',form='formatted')
@@ -25,18 +25,24 @@ open(42, file = 'out_Erho', position='append',form='formatted')
 open(43, file = 'out_divu', position='append',form='formatted')
 open(44, file = 'out_divb', position='append',form='formatted')
 open(45, file = 'out_Eint', position='append',form='formatted')
+open(46, file = 'out_Ekinc', position='append',form='formatted')
+open(47, file = 'out_Ekcom', position='append',form='formatted')
 write(40,*) EU
 write(41,*) EB
 write(42,*) Erho
 write(43,*) divu
 write(44,*) divb
 write(45,*) Eint
+write(46,*) Einc
+write(47,*) Ecom
 close(40)
 close(41)
 close(42)
 close(43)
 close(44)
 close(45)
+close(46)
+close(47)
 
 END SUBROUTINE save_energy
 
@@ -65,12 +71,13 @@ RETURN
 END SUBROUTINE energy
 
 !*****************************************************************
-SUBROUTINE compute_energy(rhok,ukx,uky,bkx,bky,EU,EB,Erho,Eint,divu,divb)
+SUBROUTINE compute_energy(rhok,ukx,uky,bkx,bky,EU,EB,Erho,Eint,divu,divb,Einc,Ecom)
 !***********compute energies
 double complex, intent(in) :: rhok(Nh,N), ukx(Nh,N), uky(Nh,N), bkx(Nh,N), bky(Nh,N)
-double precision, intent(out) :: EU, EB, Eint, Erho, divu, divb
-double precision norm, norm2
-integer i, j
+double precision, intent(out) :: EU, EB, Eint, Erho, divu, divb, Einc, Ecom
+double complex :: ukx_c, uky_c, ukx_i, uky_i, k_dot_u 
+double precision :: norm, norm2 
+integer :: i, j
 
 allocate (tmpk1(Nh,N), tmpk2(Nh,N), tmpk3(Nh,N))
 allocate (tmp1(N,N), tmp2(N,N), tmp3(N,N))
@@ -82,21 +89,37 @@ EB = 0.
 Erho = 0.
 divu = 0.
 divb = 0.
+Einc = 0.
+Ecom = 0.
 
-!$omp parallel do private(i,j) reduction(+:EU,EB)
+call incompressible_projection2(ukx,uky,tmpk1,tmpk2)
+
+!!$omp parallel do private(i,j,ukx_c,uky_c,ukx_i,uky_i,k_dot_u) reduction(+:EU,EB,Einc,Ecom)
+!$omp parallel do private(i,j) reduction(+:EU,EB,Einc,Ecom)
 do i = 1, N
     EU = EU + 0.5*(abs(ukx(1,i))**2 + abs(uky(1,i))**2)
     EB = EB + 0.5*(abs(bkx(1,i))**2 + abs(bky(1,i))**2)
+    Ecom = Ecom + 0.5*(abs(ukx(1,i) - tmpk1(1,i))**2 + abs(uky(1,i) - tmpk2(1,i))**2)
+    Einc = Einc + 0.5*(abs(tmpk1(1,i))**2 + abs(tmpk2(1,i))**2)
+
     do j = 2, Nh-1
         EU = EU + (abs(ukx(j,i))**2 + abs(uky(j,i))**2)
         EB = EB + (abs(bkx(j,i))**2 + abs(bky(j,i))**2)
+        Ecom = Ecom + (abs(ukx(j,i) - tmpk1(j,i))**2 + abs(uky(j,i) - tmpk2(j,i))**2)
+        Einc = Einc + (abs(tmpk1(j,i))**2 + abs(tmpk2(j,i))**2)
+
     end do
     EU = EU + 0.5*(abs(ukx(Nh,i))**2 + abs(uky(Nh,i))**2) ! Not necessary because of dealiasing they are zero
     EB = EB + 0.5*(abs(bkx(Nh,i))**2 + abs(bky(Nh,i))**2)
+    Ecom = Ecom + (abs(ukx(Nh,i) - tmpk1(Nh,i))**2 + abs(uky(Nh,i) - tmpk2(Nh,i))**2)
+    Einc = Einc + (abs(tmpk1(Nh,i))**2 + abs(tmpk2(Nh,i))**2)
+
 end do
 
 EU = EU*norm2
 EB = EB*norm2
+Einc = Einc*norm2
+Ecom = Ecom*norm2
 
 tmpk1 = rhok
 tmpk2 = ukx
@@ -173,6 +196,8 @@ character (len=25) :: animEUpara='out_spectrumEUpara-1D-'
 character (len=25) :: animEUperp='out_spectrumEUperp-1D-'
 character (len=25) :: animEBpara='out_spectrumEBpara-1D-'
 character (len=25) :: animEBperp='out_spectrumEBperp-1D-'
+character (len=24) :: animUinc='out_spectrumEUinc-1D-'
+character (len=24) :: animUcom='out_spectrumEUcom-1D-'
 
 allocate (spec1d(Nh), spec2(Nh))
 allocate(Ak1(Nh,N), Ak2(Nh,N))
@@ -245,6 +270,23 @@ write(31,'(1000(1X,E25.18))') spec1d(:)
 write(32,'(1000(1X,E25.18))') spec2(:)
 close(31)
 close(32)
+
+! Save U_inc^2 spectrum
+call incompressible_projection2(ukx,uky,Ak1,Ak2)
+write(animUinc(22:24),'(i3)') istore_sp
+call spectrum1D(Ak1,Ak2,spec1d)
+open(31, file=animUinc, status = 'new',form='formatted')
+write(31,'(1000(1X,E25.18))') spec1d(:)
+close(31)
+
+! Save U_inc^2 spectrum
+Ak1 = ukx - Ak1
+Ak2 = uky - Ak2
+write(animUcom(22:24),'(i3)') istore_sp
+call spectrum1D(Ak1,Ak2,spec1d)
+open(31, file=animUcom, status = 'new',form='formatted')
+write(31,'(1000(1X,E25.18))') spec1d(:)
+close(31)
 
 istore_sp = istore_sp + 1
 

@@ -89,6 +89,7 @@ if (nrestart .eq. 0) then
 
     ! Initial conditions
     ! Initilize velocity field
+    ! call CompressibleRandomInit(ukx1,uky1,CompAmp)
     call RandomInit(ukx1,uky1)
     ! call GaussianInit(ukx1,uky1)
 
@@ -155,8 +156,8 @@ end if
 
 ! Initialize forcing in ux0 and uy0
 ! call GaussianF(fukx,fuky)
-! call RandomF(fukx,fuky)
-call CompressibleRandomF(fukx,fuky,CompAmp)
+call RandomF(fukx,fuky)
+! call CompressibleRandomF(fukx,fuky,CompAmp)
 ! call RandomF_Ak(fukx,fuky,fbkx,fbky)
 ! call RandomF(fbkx,fbky)
 ! fbkx = 0.0
@@ -487,6 +488,81 @@ RETURN
 END SUBROUTINE GaussianInit
 
 !*****************************************************************
+
+SUBROUTINE CompressibleRandomInit(Akx,Aky,a)
+use omp_lib
+use parameters
+use spectral_mod
+use outputs
+implicit none
+double complex, intent(inout) :: Akx(Nh,N), Aky(Nh,N)
+double complex :: f1, f2
+double precision a, phase, kmn, kmx, E 
+integer i, j
+
+! Mixed incompressible and compressible forcing, controlled by the parameter a
+! a : fraction of compressible forcing
+! F = i k x z \psi_1 - i k \psi_2
+! \psi_1 = (1-a) f_1
+! \psi_2 = a f_2
+
+kmn = dk**2
+kmx = (kinj*dk)**2
+Akx=0.
+Aky=0.
+f1=0.
+f2=0.
+
+!$omp parallel do private(i,j,phase)
+do i = 1, N
+    f1 = 0.
+    f2 = 0.
+    if ((kd(1,i).le.kmx).and.(kd(1,i).ge.kmn)) then
+        call random_number(phase)
+        phase = 2*pi*phase
+        f1 = (cos(phase) + imag*sin(phase)) / sqrt(kd(1,i)) ! CHECK: kd/dk?
+        call random_number(phase)
+        phase = 2*pi*phase
+        f2 = (cos(phase) + imag*sin(phase)) / sqrt(kd(1,i))
+    endif
+    Akx(1,i) = imag*ky(1)*(1.-a)*f1 - imag*kx(i)*a*f2
+    Aky(1,i) = -imag*kx(i)*(1.-a)*f1 - imag*ky(1)*a*f2
+    do j = 2, Nh-1
+        f1 = 0.
+        f2 = 0.
+        if ((kd(j,i).le.kmx).and.(kd(j,i).ge.kmn)) then
+            call random_number(phase)
+            phase = 2*pi*phase
+            f1 = 2*(cos(phase) + imag*sin(phase)) / sqrt(kd(j,i))
+            call random_number(phase)
+            phase = 2*pi*phase
+            f2 = 2*(cos(phase) + imag*sin(phase)) / sqrt(kd(j,i))
+        endif
+        Akx(j,i) = imag*ky(j)*(1.-a)*f1 - imag*kx(i)*a*f2
+        Aky(j,i) = -imag*kx(i)*(1.-a)*f1 - imag*ky(j)*a*f2
+    end do
+    f1 = 0.
+    f2 = 0.
+    if ((kd(Nh,i).le.kmx).and.(kd(Nh,i).ge.kmn)) then
+        call random_number(phase)
+        phase = 2*pi*phase
+        f1 = (cos(phase) + imag*sin(phase)) / sqrt(kd(Nh,i))
+        call random_number(phase)
+        phase = 2*pi*phase
+        f2 = (cos(phase) + imag*sin(phase)) / sqrt(kd(Nh,i))
+    endif
+    Akx(Nh,i) = imag*ky(Nh)*(1.-a)*f1 - imag*kx(i)*a*f2
+    Aky(Nh,i) = -imag*kx(i)*(1.-a)*f1 - imag*ky(Nh)*a*f2
+end do
+
+call energy(Akx,Aky,E)
+Akx = amp*Akx/sqrt(E)
+Aky = amp*Aky/sqrt(E)
+
+RETURN
+END SUBROUTINE CompressibleRandomInit
+
+!*****************************************************************
 ! Random forcing spectrum
 !*****************************************************************
 ! SUBROUTINE RandomF(field)
@@ -688,6 +764,8 @@ end do
 Akx = kill*Akx ! Dealiasing
 Aky = kill*Aky ! Dealiasing
 
+call incompressible_projection(Akx,Aky)
+
 call energy(Akx,Aky,E)
 Akx = famp*Akx/sqrt(E)
 Aky = famp*Aky/sqrt(E)
@@ -700,7 +778,6 @@ END SUBROUTINE GaussianF
 SUBROUTINE PoloidalRandomF(Akx,Aky)
 use omp_lib
 use parameters
-! use fftw_mod
 use spectral_mod
 use outputs
 implicit none

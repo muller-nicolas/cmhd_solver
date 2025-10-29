@@ -82,6 +82,8 @@ def run_animation():
     anim = animation.FuncAnimation(fig, animFunc, interval=100, frames=range(ista,iend+1,iskip),
             blit=False, repeat_delay=1000, repeat=True)
 
+    #anim.save('divergence_128_bulk_hyper_nu1e-5.gif', writer='imagemagick')
+
 nfiles = (iend-ista)//iskip + 1
 
 fig = plt.figure(1)
@@ -89,6 +91,9 @@ ax = plt.axes(xlim=(0, N), ylim=(0, N))
 field = load_fields(path, name, ista+(iend-ista)//2, N)
 vmin = np.min(field) * 1.2
 vmax = -vmin
+# if name=='rho':
+#     vmin = -0.1
+#     vmax = 0.1
 im = plt.imshow(field, animated=False, vmin=vmin, vmax=vmax, cmap=cmap)
 plt.title(name)
 plt.colorbar()
@@ -98,7 +103,6 @@ run_animation()
 #ani = animation.FuncAnimation(fig, run_animation, interval=50, blit=True,
 #                                repeat_delay=1000,repeat=True)
 
-#ani.save('dipolar_supersolid.gif', writer='imagemagick')
 
 plt.draw()
 plt.show()
